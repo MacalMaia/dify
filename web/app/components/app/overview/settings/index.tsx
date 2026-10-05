@@ -5,7 +5,7 @@ import type {
   AppDetailWithSite,
   AppSiteUpdatePayload,
 } from '@dify/contracts/api/console/apps/types.gen'
-import type { DialogProps } from '@langgenius/dify-ui/dialog'
+import type { DialogActions } from '@langgenius/dify-ui/dialog'
 import type { IconPickerValue } from '@/app/components/base/icon-picker'
 import type { Language } from '@/types/app'
 import { Button } from '@langgenius/dify-ui/button'
@@ -791,7 +791,7 @@ export function SettingsDialog({
   const { t } = useTranslation(['appOverview', 'common', 'navigation'])
   const [pending, setPending] = useState(false)
   const pendingRef = useRef(false)
-  const actionsRef: DialogProps['actionsRef'] = useRef(null)
+  const actionsRef = useRef<DialogActions>(null)
   const unavailable = disabled || !appInfo
   const trigger = (
     <Button variant="secondary" disabled={unavailable || pending} className="px-3">
