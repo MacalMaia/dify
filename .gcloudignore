@@ -1,0 +1,21 @@
+# Solo lo que necesita web/Dockerfile (contexto = raíz del repo). Reduce la subida a Cloud Build.
+.git
+.github
+**/node_modules
+**/.pnpm-store
+**/.next
+**/dist
+**/.turbo
+**/.cache
+api/
+docker/
+dify-agent/
+dify-agent-runtime/
+dev/
+images/
+e2e/*
+!e2e/package.json
+sdks/*
+!sdks/nodejs-client/
+sdks/nodejs-client/*
+!sdks/nodejs-client/package.json

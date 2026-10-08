@@ -5,7 +5,10 @@ export function getInitOptions(): InitOptions {
   return {
     // We do not have en for fallback
     load: 'currentOnly',
-    fallbackLng: 'en-US',
+    fallbackLng: {
+      'es-CL': ['es-ES', 'en-US'],
+      default: ['en-US'],
+    },
     partialBundledLanguages: true,
     defaultNS,
     enableSelector: 'optimize',

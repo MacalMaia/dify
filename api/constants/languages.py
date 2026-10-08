@@ -4,6 +4,7 @@ language_timezone_mapping = {
     "zh-Hant": "Asia/Taipei",
     "pt-BR": "America/Sao_Paulo",
     "es-ES": "Europe/Madrid",
+    "es-CL": "America/Santiago",
     "fr-FR": "Europe/Paris",
     "de-DE": "Europe/Berlin",
     "ja-JP": "Asia/Tokyo",

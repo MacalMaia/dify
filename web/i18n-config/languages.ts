@@ -36,6 +36,13 @@ const data = {
       supported: true,
     },
     {
+      value: 'es-CL',
+      name: 'Español (Chile)',
+      prompt_name: 'Spanish',
+      example: '¡Hola, Macal!',
+      supported: true,
+    },
+    {
       value: 'fr-FR',
       name: 'Français (France)',
       prompt_name: 'French',

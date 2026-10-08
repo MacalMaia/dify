@@ -41,6 +41,7 @@ export const localeMap: Record<Locale, string> = {
   'zh-Hant': 'zh-tw',
   'pt-BR': 'pt-br',
   'es-ES': 'es',
+  'es-CL': 'es',
   'fr-FR': 'fr',
   'de-DE': 'de',
   'ja-JP': 'ja',
@@ -78,6 +79,7 @@ export const NOTICE_I18N = {
     zh_Hant: '重要公告',
     pt_BR: 'Aviso Importante',
     es_ES: 'Aviso Importante',
+    es_CL: 'Aviso Importante',
     fr_FR: 'Avis important',
     de_DE: 'Wichtiger Hinweis',
     ja_JP: '重要なお知らせ',
@@ -104,6 +106,8 @@ export const NOTICE_I18N = {
     pt_BR:
       'Our system will be unavailable from 19:00 to 24:00 UTC on August 28 for an upgrade. For questions, kindly contact our support team (support@dify.ai). We value your patience.',
     es_ES:
+      'Our system will be unavailable from 19:00 to 24:00 UTC on August 28 for an upgrade. For questions, kindly contact our support team (support@dify.ai). We value your patience.',
+    es_CL:
       'Our system will be unavailable from 19:00 to 24:00 UTC on August 28 for an upgrade. For questions, kindly contact our support team (support@dify.ai). We value your patience.',
     fr_FR:
       'Our system will be unavailable from 19:00 to 24:00 UTC on August 28 for an upgrade. For questions, kindly contact our support team (support@dify.ai). We value your patience.',
