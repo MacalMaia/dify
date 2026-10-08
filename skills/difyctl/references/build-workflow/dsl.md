@@ -12,15 +12,19 @@ This is the shape of an exported draft. Values vary. Both examples below are tri
 ## Where things go
 
 - Top level: `version`, `kind: app`, `app` (name, mode, icon), `dependencies`, `workflow`.
+- Keep the `version` your export gave you. The examples below show an older one.
 - `app.mode` is `workflow` for a Workflow app and `advanced-chat` for a Chatflow app.
 - `workflow.graph.nodes[]`: `{id, type: custom, data: {type, title, ...}, position: {x, y}}`. `data.type` is the node type. The rest of `data` comes from `difyctl describe node_type --node-type <type>`.
 - Set each node's `data.version` to the `version` that `describe node_type` returns.
 - `workflow.graph.edges[]`: `{id, source, target, sourceHandle: source, targetHandle: target, data: {sourceType, targetType}}`.
-- Branch nodes use another `sourceHandle`. An if-else uses `true` and `false`.
+- Branch nodes use another `sourceHandle`:
+  - if-else: each case's `case_id` (the first case is usually `true`), plus `false` for the else branch;
+  - question classifier: each class's `id`;
+  - a node with `error_strategy: fail-branch`: `source` for success, `fail-branch` for failure.
 - `workflow.features`, `workflow.environment_variables`, `workflow.conversation_variables`: keep what the export gave you.
 - A node id is any unique string. Never change the id of an existing node.
 - Read another node's output as `{{#<node_id>.<var>#}}` in text fields. In `value_selector` write `[<node_id>, <var>]`.
-- An LLM node's `model.provider` and `model.name` must name a model set up in the workspace. Use the one the plan names.
+- An LLM node's `model.provider` and `model.name` must name a model set up in the workspace. Use the one the plan names. If the plan names none, ask the human.
 - Never put secret values in the DSL.
 - An import over an existing app copies the YAML's `app.name`, description and icon onto the app.
 

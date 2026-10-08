@@ -27,10 +27,11 @@ Work on this one app for the whole build. Change it by importing over its draft.
 
 ## Each slice
 
-1. Export the draft. Keep `draft_hash` from the result. On the first slice, save `data` as `difyctl/<app-slug>/app.yml`.
+1. Export the draft. The result is `{"data": "<yaml>", "draft_hash": "<hash>"}`. Keep `draft_hash`. On the first slice, also save `data` as `app.yml`.
 
    ```bash
-   difyctl export console_app dsl --app-id <app_id> --json
+   difyctl export console_app dsl --app-id <app_id> --json | jq -r .draft_hash
+   difyctl export console_app dsl --app-id <app_id> --json | jq -r .data > difyctl/<app-slug>/app.yml
    ```
 
 2. Write the slice's nodes and edges into `app.yml` by converting the node table. Make no new decisions here. Read dsl.md in this folder for where things go in the YAML.
@@ -42,9 +43,10 @@ Work on this one app for the whole build. Change it by importing over its draft.
    ```
 
    - `--yaml-content` takes the YAML text itself. It does not read `@file`.
-   - The import copies the YAML's `app.name`, description and icon onto the app.
-   - A hash mismatch means someone else changed the draft. Stop. Export again, show the human the difference, and never overwrite it.
+   - Check `status` in the result. Go on only when it is `completed`. On `completed-with-warnings`, `pending` or `failed`, stop and read `error` and `warnings`.
+   - A `failed` import with a changed-draft error means someone else changed the draft. Stop. Export again, show the human the difference, and never overwrite it.
    - Each import changes the hash. Export again before the next import.
+   - Read dsl.md in this folder for what else an import changes.
 
 4. Test each new node alone with the plan's inputs. Fix it, import again, test again.
 
@@ -59,8 +61,10 @@ Work on this one app for the whole build. Change it by importing over its draft.
 
    ```bash
    difyctl test console_app workflow --app-id <app_id> --inputs '{"<var>": "<value>"}' --json
-   difyctl test console_app advanced_chat --app-id <app_id> --query "<message>" --json
+   difyctl test console_app advanced_chat --app-id <app_id> --query "<message>" --inputs '{"<var>": "<value>"}' --json
    ```
+
+   Pass `--inputs` when the start node declares variables. Leave it out when there are none.
 
    Record the run ids. List the latest draft runs with:
 
@@ -81,11 +85,9 @@ difyctl get run node --app-id <app_id> --run-id <run_id> --json
 
 The plan is the source of truth. If a fix changes a decision (a prompt, a condition, a node type), update the plan first, then the YAML.
 
-LLM nodes need a model that is set up in the workspace. If the plan names none, ask the human.
-
 ## Plan changes during build
 
-Decide small changes yourself. For each one:
+You decide every plan change that does not touch the spec. For each one:
 
 1. Update the plan.
 2. Log it under "Changes during build": what changed, why, and what it costs if wrong.
