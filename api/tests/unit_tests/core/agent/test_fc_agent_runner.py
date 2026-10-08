@@ -3,7 +3,7 @@ from collections.abc import Iterator
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, create_autospec
 
 import pytest
 from pytest_mock import MockerFixture
@@ -420,7 +420,7 @@ class TestBuildDatasetToolImageContents:
                 description=ToolDescription(human=I18nObject(en_US="Retrieve dataset"), llm="Retrieve dataset"),
             ),
             runtime=ToolRuntime(tenant_id=upload_file.tenant_id),
-            retrieval=MagicMock(spec=DatasetRetrieval),
+            retrieval=create_autospec(DatasetRetrieval, instance=True),
             dataset_id="dataset-id",
             config=DatasetRetrieveConfigEntity(retrieve_strategy=DatasetRetrieveConfigEntity.RetrieveStrategy.SINGLE),
             top_k=2,
