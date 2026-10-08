@@ -27,6 +27,7 @@ def _record() -> AppRecord:
 def console(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     console = MagicMock()
     console.get.return_value = _record()
+    console.update.return_value = _record()
     monkeypatch.setattr(
         _app_settings, "application_services", lambda: SimpleNamespace(apps=SimpleNamespace(console=console))
     )
@@ -40,7 +41,11 @@ _CTX = cast(Context, SimpleNamespace(app=SimpleNamespace(id="app-1"), workspace=
 
 @pytest.mark.parametrize(
     ("patch", "description", "name"),
-    [(AppInfoPatch(name="New"), "keep me", "New"), (AppInfoPatch(description=""), "", "Old")],
+    [
+        (AppInfoPatch(name="New"), "keep me", "New"),
+        (AppInfoPatch(description=""), "", "Old"),
+        (AppInfoPatch(description=None), "keep me", "Old"),
+    ],
 )
 def test_set_app_info_changes_only_passed_fields(
     console: MagicMock, patch: AppInfoPatch, description: str, name: str

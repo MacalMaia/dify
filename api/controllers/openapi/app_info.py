@@ -187,7 +187,7 @@ class AgentAppInfoApi(Resource):
     @endpoint(
         op="describe.app_info.agent",
         kind=Kind.OBJECT,
-        summary="Name, description, icon and role and run cap of an agent app",
+        summary="Name, description, icon, role and run cap of an agent app",
         examples=(_INFO_EXAMPLE,),
         requirements=account_settings_guards(_AGENT_INFO_READ, scope=Scope.APPS_READ, mode=AppMode.AGENT, roles=None),
         returns=(HTTPStatus.OK, AgentAppInfo, "App info"),

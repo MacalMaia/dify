@@ -9,12 +9,11 @@ from pydantic import BaseModel
 
 from configs import dify_config
 from controllers.common.rbac.locators import agent_binding
-from controllers.openapi._models import AgentServiceApi
 from controllers.openapi.auth.context import Context
 from extensions.ext_application_services import application_services
 from libs.url_utils import normalize_api_base_url
 from machinery.context import RequestContext
-from services.entities.app_entities import UpdateAppParams
+from services.entities.app_entities import AppRecord, UpdateAppParams
 
 
 def request_context(ctx: Context) -> RequestContext:
@@ -25,23 +24,30 @@ def app_base_url() -> str:
     return dify_config.APP_WEB_URL or request.url_root.rstrip("/")
 
 
-def app_info[T: BaseModel](ctx: Context, model: type[T]) -> T:
-    data = asdict(application_services().apps.console.get(request_context(ctx), ctx.app.id))
+def _info_from_record[T: BaseModel](ctx: Context, record: AppRecord, model: type[T], role: str | None) -> T:
+    data = asdict(record)
     if "role" in model.model_fields:
-        agent = agent_binding(ctx.workspace.id, ctx.app.id)
-        data["role"] = agent.role if agent is not None else ""
+        if role is None:
+            agent = agent_binding(ctx.workspace.id, ctx.app.id)
+            role = agent.role if agent is not None else ""
+        data["role"] = role
     return model.model_validate(data)
+
+
+def app_info[T: BaseModel](ctx: Context, model: type[T]) -> T:
+    record = application_services().apps.console.get(request_context(ctx), ctx.app.id)
+    return _info_from_record(ctx, record, model, None)
 
 
 def update_app_info[T: BaseModel](ctx: Context, patch: BaseModel, model: type[T]) -> T:
     console = application_services().apps.console
     current = console.get(request_context(ctx), ctx.app.id)
-    changes = patch.model_dump(exclude_unset=True)
-    console.update(
+    changes = patch.model_dump(exclude_unset=True, exclude_none=True)
+    record = console.update(
         request_context(ctx),
         ctx.app.id,
         UpdateAppParams(
-            name=changes.get("name") or current.name,
+            name=changes.get("name", current.name),
             description=changes.get("description", current.description or ""),
             icon_type=changes.get("icon_type", current.icon_type),
             icon=changes.get("icon", current.icon or ""),
@@ -51,13 +57,13 @@ def update_app_info[T: BaseModel](ctx: Context, patch: BaseModel, model: type[T]
             role=changes.get("role"),
         ),
     )
-    return app_info(ctx, model)
+    return _info_from_record(ctx, record, model, changes.get("role"))
 
 
 def service_api[T: BaseModel](ctx: Context, model: type[T]) -> T:
     base_url = normalize_api_base_url(dify_config.SERVICE_API_URL or request.host_url.rstrip("/"))
     data: dict[str, object] = {"enabled": ctx.app.enable_api, "base_url": base_url}
-    if model is AgentServiceApi:
+    if "api_rpm" in model.model_fields:
         data |= {"api_rpm": ctx.app.api_rpm or 0, "api_rph": ctx.app.api_rph or 0}
     return model.model_validate(data)
 
