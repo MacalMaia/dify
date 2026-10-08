@@ -608,6 +608,7 @@ class VersionRow(BaseModel):
     marked_comment: str
     created_by: str | None = None
     created_at: int
+    current: bool = False
 
     @field_validator("created_at", mode="before")
     @classmethod
@@ -664,3 +665,50 @@ class RestoreResponse(BaseModel):
         description="Hash of the restored draft's graph, features, environment variables and conversation "
         "variables; pass it to a DSL import as draft_hash"
     )
+
+
+class NodeTypeRow(BaseModel):
+    type: str
+    version: str
+
+
+class NodeTypeListResponse(BaseModel):
+    data: list[NodeTypeRow]
+
+
+class NodeTypeDetailResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    type: str
+    version: str
+    schema_: dict[str, Any] = Field(alias="schema", serialization_alias="schema")
+    default_config: dict[str, Any]
+
+
+class CreateAppPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1, description="App name")
+    description: str | None = Field(default=None, max_length=400, description="App description")
+    icon_type: str | None = Field(default=None, description="emoji, image or link")
+    icon: str | None = Field(default=None, description="Emoji, file id or URL, per icon_type")
+    icon_background: str | None = Field(default=None, description="Background colour for an emoji icon")
+
+
+class CreatedAppResponse(BaseModel):
+    app_id: str
+    mode: str
+    name: str
+
+
+class NodeRunPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    inputs: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Overrides for what the last draft run saved, keyed by variable reference such as #llm.text#",
+    )
+
+
+class AdvancedChatNodeRunPayload(NodeRunPayload):
+    query: str = Field(default="", description="The user message the node sees as sys.query")

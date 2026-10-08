@@ -39,6 +39,7 @@ from controllers.common.schema import register_enum_models, register_response_sc
 from controllers.openapi._models import (
     AccountPayload,
     AccountResponse,
+    AdvancedChatNodeRunPayload,
     AdvancedChatRunPayload,
     AppDescribeInfo,
     AppDescribeQuery,
@@ -53,6 +54,8 @@ from controllers.openapi._models import (
     AppListRow,
     ChatRunPayload,
     CompletionRunPayload,
+    CreateAppPayload,
+    CreatedAppResponse,
     DeviceCodeRequest,
     DeviceCodeResponse,
     DeviceLookupQuery,
@@ -77,6 +80,10 @@ from controllers.openapi._models import (
     MemberResponse,
     MemberRoleUpdatePayload,
     MessageMetadata,
+    NodeRunPayload,
+    NodeTypeDetailResponse,
+    NodeTypeListResponse,
+    NodeTypeRow,
     OpenApiFormSubmitPayload,
     PermittedExternalAppsListQuery,
     PermittedExternalAppsListResponse,
@@ -103,11 +110,16 @@ from controllers.openapi._models import (
     WorkspaceSummaryResponse,
 )
 from fields.file_fields import FileResponse
-from fields.workflow_run_fields import WorkflowRunDetailResponse, WorkflowRunNodeExecutionListResponse
+from fields.workflow_run_fields import (
+    WorkflowRunDetailResponse,
+    WorkflowRunNodeExecutionListResponse,
+    WorkflowRunNodeExecutionResponse,
+)
 from services.entities.dsl_entities import CheckDependenciesResult, Import
 
 register_schema_models(
     openapi_ns,
+    AdvancedChatNodeRunPayload,
     AdvancedChatRunPayload,
     AppDescribeQuery,
     AppDslImportPayload,
@@ -115,6 +127,7 @@ register_schema_models(
     AppListQuery,
     ChatRunPayload,
     CompletionRunPayload,
+    CreateAppPayload,
     DeviceCodeRequest,
     DevicePollRequest,
     DeviceLookupQuery,
@@ -124,6 +137,7 @@ register_schema_models(
     MemberInvitePayload,
     MemberListQuery,
     MemberRoleUpdatePayload,
+    NodeRunPayload,
     OpenApiFormSubmitPayload,
     EnvVariableSetPayload,
     PermittedExternalAppsListQuery,
@@ -183,6 +197,11 @@ register_response_schema_models(
     EnvVariableListResponse,
     WorkflowRunDetailResponse,
     WorkflowRunNodeExecutionListResponse,
+    WorkflowRunNodeExecutionResponse,
+    CreatedAppResponse,
+    NodeTypeRow,
+    NodeTypeListResponse,
+    NodeTypeDetailResponse,
 )
 # Standalone definition for contract codegen; ErrorBody.code stays an open
 # string on the wire so old clients keep parsing future codes.
@@ -190,6 +209,7 @@ register_enum_models(openapi_ns, OpenApiErrorCode)
 
 from . import (
     account,
+    app_create,
     app_dsl,
     app_run,
     app_workflow,
@@ -198,6 +218,7 @@ from . import (
     files,
     human_input_form,
     index,
+    node_types,
     oauth_device,
     oauth_device_sso,
     workflow_events,
@@ -208,6 +229,7 @@ from . import (
 
 __all__ = [
     "account",
+    "app_create",
     "app_dsl",
     "app_run",
     "app_workflow",
@@ -216,6 +238,7 @@ __all__ = [
     "files",
     "human_input_form",
     "index",
+    "node_types",
     "oauth_device",
     "oauth_device_sso",
     "workflow_events",

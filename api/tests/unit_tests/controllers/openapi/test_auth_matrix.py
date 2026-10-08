@@ -84,6 +84,7 @@ from controllers.openapi.auth.requirements import (
     CheckAppAccess,
     CheckAppApiEnabled,
     CheckAppMode,
+    CheckAppQuota,
     CheckRBACPermission,
     CheckScope,
     CheckSubject,
@@ -362,6 +363,34 @@ ROUTES: tuple[Route, ...] = (
         "app_workflow.env.delete",
         "DELETE",
         "/apps/{app_id}/env/{env_id}",
+        frozenset({Trait.ACCOUNT_PRIMARY, Trait.APP_SCOPED}),
+    ),
+    Route("node_types.list", "GET", "/node-types", frozenset({Trait.ACCOUNT_PRIMARY, Trait.EXTERNAL_REACHABLE})),
+    Route(
+        "node_types.describe",
+        "GET",
+        "/node-types/{node_type}",
+        frozenset({Trait.ACCOUNT_PRIMARY, Trait.EXTERNAL_REACHABLE}),
+    ),
+    Route(
+        "app_create.workflow", "POST", "/workspaces/{workspace_id}/apps/workflow", frozenset({Trait.ACCOUNT_PRIMARY})
+    ),
+    Route(
+        "app_create.advanced_chat",
+        "POST",
+        "/workspaces/{workspace_id}/apps/advanced-chat",
+        frozenset({Trait.ACCOUNT_PRIMARY}),
+    ),
+    Route(
+        "app_workflow.node_run.workflow",
+        "POST",
+        "/apps/{app_id}/draft/workflow/nodes/{node_id}:run",
+        frozenset({Trait.ACCOUNT_PRIMARY, Trait.APP_SCOPED}),
+    ),
+    Route(
+        "app_workflow.node_run.advanced_chat",
+        "POST",
+        "/apps/{app_id}/draft/advanced-chat/nodes/{node_id}:run",
         frozenset({Trait.ACCOUNT_PRIMARY, Trait.APP_SCOPED}),
     ),
     Route(
@@ -646,6 +675,13 @@ _ACCOUNT_EDITOR_APP: dict[Case, Expect] = {
 }
 
 
+_ANY_BEARER: dict[Case, Expect] = {
+    **{case: ADMIT for case in Case if CASE_REQUIRES[case] <= {Trait.ACCOUNT_PRIMARY, Trait.EXTERNAL_REACHABLE}},
+    Case.WRONG_SUBJECT: DENY_SSO_NEEDS_EE,
+}
+"""A route with no requirements admits every case that carries a valid bearer. The one
+exception is the router's own answer: an external-SSO bearer is refused outside enterprise."""
+
 MATRIX: dict[str, dict[Case, Expect]] = {
     "describe.account": dict(_ACCOUNT_ONLY_NO_WORKSPACE),
     "workspaces.list": dict(_ACCOUNT_ONLY_NO_WORKSPACE),
@@ -656,6 +692,9 @@ MATRIX: dict[str, dict[Case, Expect]] = {
     "workspaces.members.invite": dict(_ACCOUNT_MEMBER_WITH_ROLE),
     "workspaces.members.update_role": dict(_ACCOUNT_MEMBER_WITH_ROLE),
     "app_dsl.import": dict(_ACCOUNT_MEMBER_WITH_ROLE),
+    "app_create.workflow": dict(_ACCOUNT_MEMBER_WITH_ROLE),
+    "node_types.list": dict(_ANY_BEARER),
+    "app_workflow.node_run.workflow": dict(_ACCOUNT_EDITOR_APP),
     "apps.describe": dict(_ACCOUNT_READER_APP),
     "app_dsl.export": dict(_ACCOUNT_EDITOR_APP),
     "app_run.draft.workflow": dict(_ACCOUNT_EDITOR_APP),
@@ -811,6 +850,15 @@ _REQ_DRAFT_RUN = (
     CheckRBACPermission(RBACCheck(RBACPermission.APP_TEST_AND_RUN, PlainApp())),
     CheckWorkspaceRole(_EDITOR_UP),
 )
+_REQ_NODE_TYPES: tuple[Requirement, ...] = ()
+_REQ_APP_CREATE = (
+    CheckSubject(allowed=_ACCOUNT),
+    CheckScope(Scope.WORKSPACE_WRITE),
+    CheckWorkspaceMember(),
+    CheckRBACPermission(RBACCheck(RBACPermission.APP_CREATE_AND_MANAGEMENT, Workspace())),
+    CheckWorkspaceRole(_EDITOR_UP),
+    CheckAppQuota(),
+)
 _REQ_FILES = (
     CheckSubject(allowed=_ACCOUNT_OR_EXTERNAL),
     CheckAppApiEnabled(),
@@ -862,6 +910,12 @@ DECLARED: dict[str, tuple[Requirement, ...]] = {
     "app_workflow.env.list": _REQ_VERSION_READ,
     "app_workflow.env.set": _REQ_ENV_WRITE,
     "app_workflow.env.delete": _REQ_ENV_WRITE,
+    "node_types.list": _REQ_NODE_TYPES,
+    "node_types.describe": _REQ_NODE_TYPES,
+    "app_create.workflow": _REQ_APP_CREATE,
+    "app_create.advanced_chat": _REQ_APP_CREATE,
+    "app_workflow.node_run.workflow": _REQ_DRAFT_RUN,
+    "app_workflow.node_run.advanced_chat": _REQ_DRAFT_RUN,
     "app_run.stop": _REQ_RUN,
     "files.upload": _REQ_FILES,
     "human_input_form.get": _REQ_RUN_FORM,
@@ -1152,6 +1206,8 @@ def _url(route: Route, world: World, scenario: Scenario, bearer: Bearer | None) 
         "run_id": str(uuid.uuid4()),
         "version_id": str(uuid.uuid4()),
         "env_id": str(uuid.uuid4()),
+        "node_type": "llm",
+        "node_id": "node-1",
     }
     query = route.query.format(**ids)
     if scenario.foreign_workspace_query:
@@ -1415,6 +1471,12 @@ EXPECTED_RESPONSE_CODES: dict[tuple[str, str], frozenset[str]] = {
     ("post", "/oauth/device/deny"): frozenset({"200"}),
     ("get", "/oauth/device/lookup"): frozenset({"200"}),
     ("post", "/oauth/device/token"): frozenset({"200"}),
+    ("get", "/node-types"): frozenset({"200", "default"}),
+    ("get", "/node-types/{node_type}"): frozenset({"200", "default"}),
+    ("post", "/apps/{app_id}/draft/workflow/nodes/{node_id}:run"): frozenset({"200", "422", "default"}),
+    ("post", "/apps/{app_id}/draft/advanced-chat/nodes/{node_id}:run"): frozenset({"200", "422", "default"}),
+    ("post", "/workspaces/{workspace_id}/apps/workflow"): frozenset({"201", "422", "default"}),
+    ("post", "/workspaces/{workspace_id}/apps/advanced-chat"): frozenset({"201", "422", "default"}),
     ("get", "/permitted-external-apps"): frozenset({"200", "422", "default"}),
     ("get", "/permitted-external-apps/{app_id}"): frozenset({"200", "422", "default"}),
     ("get", "/workspaces"): frozenset({"200", "422", "default"}),
