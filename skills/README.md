@@ -22,8 +22,8 @@ The skill is a tree of linked docs, so an agent reads only the branch it needs.
 - Write links as "Read X when ...", so the agent knows when to follow them.
 - In a leaf over 100 lines, `## Contents` is the first `##` heading.
 - Put each fact in one place and link to it from elsewhere.
-- Only `.md` files are embedded and installed. The release build fails on any
-  other file under `skills/difyctl/`.
+- Any file in `skills/difyctl/` ships. Files starting with `#!` are installed
+  executable.
 
 `cli/test/skills/tree.test.ts` checks links, depth, sizes, and every `difyctl`
 command, in backticks or in code blocks. Each command must exist locally or in

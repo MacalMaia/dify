@@ -9,8 +9,8 @@ import { embeddedFiles, isCompiledBinary } from '@/sys'
 
 export const SKILL_NAME = 'difyctl'
 export const SKILL_FILE = 'SKILL.md'
-const EMBED_MARKER = `skills/${SKILL_NAME}/`
-const REPO_SKILL_DIR = fileURLToPath(new URL(`../../../${EMBED_MARKER}`, import.meta.url))
+const EMBED_PREFIX = `${SKILL_NAME}/`
+const REPO_SKILL_DIR = fileURLToPath(new URL(`../../../skills/${EMBED_PREFIX}`, import.meta.url))
 export const NO_EMBEDDED_SKILL =
   'this difyctl build has no embedded skill; reinstall difyctl or pass --from <folder>'
 
@@ -45,12 +45,7 @@ export async function openDir(root: string): Promise<SkillSource> {
 }
 
 export function embeddedSource(files: readonly EmbeddedFile[]): SkillSource {
-  const byPath = new Map(
-    files.map((file) => [
-      file.name.slice(file.name.indexOf(EMBED_MARKER) + EMBED_MARKER.length),
-      file,
-    ]),
-  )
+  const byPath = new Map(files.map((file) => [file.name.slice(EMBED_PREFIX.length), file]))
   return {
     paths: [...byPath.keys()],
     read: async (path) => new Uint8Array(await (byPath.get(path) as EmbeddedFile).arrayBuffer()),
@@ -68,7 +63,7 @@ export async function pickSource({ files, compiled }: SourceInputs): Promise<Ski
 
 export function defaultSource(): Promise<SkillSource> {
   return pickSource({
-    files: embeddedFiles().filter((file) => file.name.includes(EMBED_MARKER)),
+    files: embeddedFiles().filter((file) => file.name.startsWith(EMBED_PREFIX)),
     compiled: isCompiledBinary(),
   })
 }

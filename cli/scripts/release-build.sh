@@ -42,14 +42,8 @@ DIFYCTL_BUILD_DATE="${DIFYCTL_BUILD_DATE:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
 [[ "$CLI_VERSION" != "undefined" ]] || die "CLI_VERSION could not be derived from package.json"
 
 repo_root="$(cd "${cli_root}/.." && pwd)"
-skill_files=()
-while IFS= read -r file; do
-    skill_files+=("$file")
-done < <(cd "$repo_root" && find skills/difyctl -type f | sort)
-[[ ${#skill_files[@]} -gt 0 ]] || die "no skill files under skills/difyctl"
-for file in "${skill_files[@]}"; do
-    [[ "$file" == *.md ]] || die "skills/difyctl may hold only .md files (only those are embedded and installed): ${file}"
-done
+skill_dir="${repo_root}/skills/difyctl"
+[[ -f "${skill_dir}/SKILL.md" ]] || die "skill not found: ${skill_dir}"
 
 [[ -f "$entry" ]] || die "entry not found: $entry"
 
@@ -70,9 +64,8 @@ defines=(
 while IFS=$'\t' read -r bun_target asset_target _exe; do
     out="${out_dir}/$(naming asset "$CLI_VERSION" "$asset_target")"
     log::info "compiling ${asset_target} -> $(basename "$out")..."
-    (cd "$repo_root" && bun build "$entry" "${skill_files[@]}" \
-        --loader .md:file \
-        --asset-naming='[dir]/[name].[ext]' \
+    (cd "$repo_root" && bun build "$entry" \
+        --asset "$skill_dir" \
         --target="$bun_target" \
         --compile \
         --minify \

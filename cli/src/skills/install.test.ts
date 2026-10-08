@@ -43,6 +43,14 @@ it('writes every file under <root>/difyctl', async () => {
   expect(await readFile(join(root, SKILL_NAME, 'references/setup.md'), 'utf8')).toBe('setup')
 })
 
+it('installs files starting with #! as executable and others as plain files', async () => {
+  await put('scripts/run.sh', '#!/bin/sh\n')
+  await installSkill(root, await openDir(from))
+  const mode = async (path: string) => (await stat(join(root, SKILL_NAME, path))).mode & 0o111
+  expect(await mode('scripts/run.sh')).not.toBe(0)
+  expect(await mode('references/setup.md')).toBe(0)
+})
+
 it('removes files the new tree no longer has', async () => {
   await mkdir(join(root, SKILL_NAME, 'references'), { recursive: true })
   await writeFile(join(root, SKILL_NAME, 'references/old.md'), 'old')
@@ -51,7 +59,7 @@ it('removes files the new tree no longer has', async () => {
 })
 
 it('maps embedded names to paths inside the skill', async () => {
-  const file = Object.assign(new Blob(['setup']), { name: '../skills/difyctl/references/setup.md' })
+  const file = Object.assign(new Blob(['setup']), { name: 'difyctl/references/setup.md' })
   const source = embeddedSource([file])
   expect(source.paths).toEqual(['references/setup.md'])
   expect(new TextDecoder().decode(await source.read('references/setup.md'))).toBe('setup')
