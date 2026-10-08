@@ -685,14 +685,15 @@ class NodeTypeDetailResponse(BaseModel):
     default_config: dict[str, Any]
 
 
+AppIconType = Literal[IconType.EMOJI, IconType.IMAGE, IconType.LINK]
+
+
 class CreateAppPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str = Field(min_length=1, description="App name")
     description: str | None = Field(default=None, max_length=400, description="App description")
-    icon_type: Literal[IconType.EMOJI, IconType.IMAGE, IconType.LINK] | None = Field(
-        default=None, description="emoji, image or link"
-    )
+    icon_type: AppIconType | None = Field(default=None, description="emoji, image or link")
     icon: str | None = Field(default=None, description="Emoji, file id or URL, per icon_type")
     icon_background: str | None = Field(default=None, description="Background colour for an emoji icon")
 
@@ -701,6 +702,58 @@ class CreatedAppResponse(BaseModel):
     app_id: str
     mode: str
     name: str
+
+
+class AppSettingsInfo(BaseModel):
+    name: str
+    description: str | None = None
+    icon_type: str | None = None
+    icon: str | None = None
+    icon_background: str | None = None
+    max_active_requests: int | None = None
+
+
+class ChatAppInfo(AppSettingsInfo):
+    use_icon_as_answer_icon: bool = False
+
+
+class AgentAppInfo(ChatAppInfo):
+    role: str = ""
+
+
+class AppInfoPatch(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = Field(default=None, min_length=1, description="App name")
+    description: str | None = Field(default=None, max_length=400, description="Pass an empty string to clear")
+    icon_type: AppIconType | None = Field(default=None, description="emoji, image or link")
+    icon: str | None = Field(default=None, description="Emoji, file id or URL, per icon_type")
+    icon_background: str | None = Field(default=None, description="Background colour for an emoji icon")
+    max_active_requests: int | None = Field(default=None, ge=0, description="Concurrent run cap; 0 means no cap")
+
+
+class ChatAppInfoPatch(AppInfoPatch):
+    use_icon_as_answer_icon: bool | None = Field(default=None, description="Show the app icon on answers")
+
+
+class AgentAppInfoPatch(ChatAppInfoPatch):
+    role: str | None = Field(default=None, max_length=255, description="The agent's role; empty string clears it")
+
+
+class ServiceApi(BaseModel):
+    enabled: bool
+    base_url: str
+
+
+class AgentServiceApi(ServiceApi):
+    api_rpm: int = 0
+    api_rph: int = 0
+
+
+class ServiceApiPatch(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool = Field(description="Turn the app's Service API on or off")
 
 
 class NodeRunPayload(BaseModel):
