@@ -14,7 +14,10 @@ const TOC_HEADING = /^## Contents$/m
 const LINK = /\]\(([^)#\s]+\.md)\)/g
 const COMMAND = /`difyctl ([^`]+)`/g
 const BUILTIN_ROOTS = new Set(['help'])
-const WORD = /^[a-z_]+$/
+const WORD = /^[a-z_]+(?:-[a-z_]+)*$/
+const DOTTED_ID = /^[a-z_]+(?:\.[a-z_]+)+$/
+const SPAN = /`([^`]+)`/g
+const NON_WORD_START = /^[-<]/
 
 async function docs(): Promise<string[]> {
   const out: string[] = []
@@ -37,7 +40,7 @@ function commandWords(span: string): string[] {
   const words: string[] = []
   for (const word of span.split(' ')) {
     if (!WORD.test(word)) break
-    words.push(word)
+    words.push(word.replaceAll('-', '_'))
   }
   return words
 }
@@ -54,11 +57,7 @@ function isLocal(words: readonly string[]): boolean {
 
 function isOpOrNamespace(words: readonly string[], ops: readonly string[]): boolean {
   const full = words.join('.')
-  if (ops.some((op) => op.startsWith(`${full}.`))) return true
-  for (let end = words.length; end > 0; end--) {
-    if (ops.includes(words.slice(0, end).join('.'))) return true
-  }
-  return false
+  return ops.includes(full) || ops.some((op) => op.startsWith(`${full}.`))
 }
 
 describe('skills/difyctl tree', async () => {
@@ -106,9 +105,24 @@ describe('skills/difyctl tree', async () => {
   it('every difyctl command exists locally or in the catalog', () => {
     for (const [doc, body] of text) {
       for (const m of body.matchAll(COMMAND)) {
-        const words = commandWords(m[1] as string)
-        if (words.length === 0) continue
-        expect(isLocal(words) || isOpOrNamespace(words, ops), `${doc}: difyctl ${m[1]}`).toBe(true)
+        const span = m[1] as string
+        const words = commandWords(span)
+        if (words.length === 0) {
+          expect(span, `${doc}: difyctl ${span} names no command`).toMatch(NON_WORD_START)
+          continue
+        }
+        expect(isLocal(words) || isOpOrNamespace(words, ops), `${doc}: difyctl ${span}`).toBe(true)
+      }
+    }
+  })
+
+  it('every dotted op id exists in the catalog', () => {
+    const verbs = new Set(ops.map((op) => op.split('.')[0]))
+    for (const [doc, body] of text) {
+      for (const m of body.matchAll(SPAN)) {
+        const span = m[1] as string
+        if (!DOTTED_ID.test(span) || !verbs.has(span.split('.')[0])) continue
+        expect(ops, `${doc}: ${span}`).toContain(span)
       }
     }
   })
