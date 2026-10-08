@@ -6,6 +6,13 @@ export function getEnv(name: string): string | undefined {
   return process.env[name]
 }
 
+export type EmbeddedFile = Blob & { readonly name: string }
+
+export function embeddedFiles(): readonly EmbeddedFile[] {
+  const bun = (globalThis as { Bun?: { embeddedFiles?: readonly EmbeddedFile[] } }).Bun
+  return bun?.embeddedFiles ?? []
+}
+
 export function env(): NodeJS.ProcessEnv {
   return process.env
 }

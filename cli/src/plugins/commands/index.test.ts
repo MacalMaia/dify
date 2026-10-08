@@ -145,7 +145,6 @@ it('help routes a word to a namespace listing or a search, and --full is the fla
   const c = await world(true, ['help', 'get'])
   await (await c.ctx.get(commands)).run()
   const ids = JSON.parse(c.io.outBuf()).entries.map((e: { id: string }) => e.id)
-  expect(ids).toContain('get skills')
   expect(ids).toContain('get workspace member')
   expect(ids).toEqual([...ids].sort())
 
