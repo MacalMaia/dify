@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from contextlib import AbstractContextManager, closing
 from dataclasses import replace
-from typing import BinaryIO, Literal, Protocol
+from typing import Any, BinaryIO, Literal, Protocol
 from uuid import UUID, uuid4
 
+from enums import WebAppAccessMode
 from machinery.context import RequestContext
 from models.model import AppMode
 from services.agent.errors import InvalidRosterAgentPackageError
@@ -85,6 +86,14 @@ class ConsoleAppAccess(Protocol):
     def access_modes(self, app_ids: list[str]) -> dict[str, str]: ...
 
     def access_mode(self, app_id: str) -> str | None: ...
+
+    def access_subjects(self, app_id: str) -> dict[str, Any]: ...
+
+    def update_access(self, app_id: str, access_mode: WebAppAccessMode, subjects: list[dict[str, str]]) -> None: ...
+
+    def search_access_subjects(
+        self, *, keyword: str, page: int, limit: int, group_id: str | None
+    ) -> dict[str, Any]: ...
 
     def can_export_version(self, workspace_id: str) -> bool: ...
 
@@ -203,6 +212,15 @@ class ConsoleAppService:
         self._creators = creators
         self._tracing = tracing
         self._lifecycle = lifecycle
+
+    def access_subjects(self, app_id: str) -> dict[str, Any]:
+        return self._access.access_subjects(app_id)
+
+    def update_access(self, app_id: str, access_mode: WebAppAccessMode, subjects: list[dict[str, str]]) -> None:
+        self._access.update_access(app_id, access_mode, subjects)
+
+    def search_access_subjects(self, *, keyword: str, page: int, limit: int, group_id: str | None) -> dict[str, Any]:
+        return self._access.search_access_subjects(keyword=keyword, page=page, limit=limit, group_id=group_id)
 
     def import_app(self, context: RequestContext, params: AppImportParams, *, source: BinaryIO | None = None) -> Import:
         if source is not None:
