@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from types import SimpleNamespace
 from typing import cast
 from unittest.mock import MagicMock
@@ -33,9 +34,12 @@ def test_app_mode_refuses_another_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     ],
 )
 def test_webapp_access_needs_ee_with_webapp_auth(
-    monkeypatch: pytest.MonkeyPatch, edition: DeploymentEdition, webapp_auth: bool
+    monkeypatch: pytest.MonkeyPatch,
+    config_overrides: Callable[..., None],
+    edition: DeploymentEdition,
+    webapp_auth: bool,
 ) -> None:
-    monkeypatch.setattr(requirements.dify_config, "DEPLOYMENT_EDITION", edition)
+    config_overrides(DEPLOYMENT_EDITION=edition)
     features = SimpleNamespace(webapp_auth=SimpleNamespace(enabled=webapp_auth))
     monkeypatch.setattr(requirements.SystemFeatureService, "get_public_system_features", lambda: features)
     with pytest.raises(_errors.WebAppAccessRequiresEE):

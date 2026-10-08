@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from http import HTTPStatus
-from typing import Final
+from typing import Final, Literal
 
 from flask_restx import Resource
 
@@ -37,7 +37,9 @@ _CREATE_GUARDS: Final = (
 )
 
 
-def _create(ctx: RequestContext, mode: AppMode, body: CreateAppPayload) -> tuple[CreatedAppResponse, HTTPStatus]:
+def _create(
+    ctx: RequestContext, mode: Literal[AppMode.WORKFLOW, AppMode.ADVANCED_CHAT], body: CreateAppPayload
+) -> tuple[CreatedAppResponse, HTTPStatus]:
     app = application_services().apps.console.create(
         ctx, CreateAppParams(mode=mode.value, **body.model_dump(exclude_none=True))
     )
