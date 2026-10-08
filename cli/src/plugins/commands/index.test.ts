@@ -148,7 +148,7 @@ it('help routes a word to a namespace listing or a search, and --full is the fla
   expect(ids).toContain('get workspace member')
   expect(ids).toEqual([...ids].sort())
 
-  const d = await world(true, ['help', 'chatbot'])
+  const d = await world(true, ['help', 'chatbot', 'streams'])
   await (await d.ctx.get(commands)).run()
   expect(JSON.parse(d.io.outBuf()).entries[0]).toMatchObject({
     id: 'run console_app chat',
@@ -254,17 +254,17 @@ it('a command word may be spelled with dashes where the op id has underscores', 
 })
 
 it('an unknown path refetches the catalog once before giving up', async () => {
-  const w = await world(true, ['get', 'nope'])
+  const w = await world(true, ['get', 'qqqq'])
   await expect((await w.ctx.get(commands)).run()).rejects.toMatchObject({
     code: 'usage_invalid_flag',
-    message: 'unknown command: get nope',
+    message: 'unknown command: get qqqq',
     hint: 'run difyctl help',
   })
   expect(w.mock.requestCount).toBe(2) // the cached catalog, then one refetch
 
   const typo = await world(true, ['get', 'consol_app'])
   await expect((await typo.ctx.get(commands)).run()).rejects.toMatchObject({
-    hint: 'did you mean: get console_app',
+    hint: 'did you mean: get console_app, get console_app version',
   })
 })
 
