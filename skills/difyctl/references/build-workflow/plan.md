@@ -26,7 +26,7 @@ Start only when the human has approved `spec.md`. The plan phase ends when the h
    - Slice 1 is always the skeleton: start → end (Chatflow: start → answer), with the final inputs and outputs.
    - Each later slice adds a few nodes.
 5. Map the tests.
-   - Give each new node a `difyctl test node <mode>` call with specific inputs.
+   - Give each new node a `difyctl test node <mode>` call with specific inputs. `<mode>` is `workflow` for a Workflow app and `advanced_chat` for a Chatflow app.
    - End each slice with a full draft run (`difyctl test console_app workflow` or `difyctl test console_app advanced_chat`) on the acceptance cases that slice can already pass.
 6. Check coverage. Every requirement maps to a node and a test. Every resource is confirmed. An open resource blocks approval.
 7. Ask the human to review the plan. Offer two ways to build:
@@ -42,7 +42,7 @@ Start only when the human has approved `spec.md`. The plan phase ends when the h
 | Node table           | Id, type, version, title, full config, inputs used, outputs, covers `R…`                     |
 | Slices               | Ordered; each lists nodes added, `R`s covered, `test node` calls, full-run cases, a checkbox |
 | Test map             | Acceptance case → command, inputs, check type                                                |
-| Changes during build | Filled in during build (read build.md in this folder)                                        |
+| Changes during build | Filled in during build (read [build.md](build.md))                                           |
 
 ## Reviews
 

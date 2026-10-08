@@ -4,7 +4,7 @@ Start when every slice in `plan.md` is ticked. In the commands below, `<mode>` i
 
 1. Run the final acceptance run: every case in the spec, on the draft. Report pass or fail per requirement and per case. Show your reasoning for each `judged` case.
 2. Stop at the human gate. Show the human the results, the "Changes during build" list from `plan.md`, and anything still open. Nothing goes live without a yes.
-3. Publish. Keep `version_id` from the result. Then confirm the new version is live:
+3. Publish. Keep `version_id` from the result. If the result has a `warning`, show it to the human. Then confirm the new version is live:
 
    ```bash
    difyctl publish console_app --app-id <app_id> --json
@@ -20,7 +20,7 @@ Start when every slice in `plan.md` is ticked. In the commands below, `<mode>` i
      difyctl set webapp <mode> --app-id <app_id> --enabled --json
      ```
 
-   - Service API (needs an admin): keep it on or turn it off, with `--enabled` or `--enabled=false`. Warn the human first: with the Service API off, difyctl can no longer export, import, test or run this app.
+   - Service API (needs an admin): keep it on or turn it off, with `--enabled` or `--enabled=false`. Warn the human first: with the Service API off, difyctl can no longer export, test, run, publish or restore this app. Import still works. An admin can turn it back on with `difyctl set service_api <mode> --app-id <app_id> --enabled`.
 
      ```bash
      difyctl set service_api <mode> --app-id <app_id> --enabled --json

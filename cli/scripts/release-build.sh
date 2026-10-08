@@ -47,6 +47,9 @@ while IFS= read -r file; do
     skill_files+=("$file")
 done < <(cd "$repo_root" && find skills/difyctl -type f | sort)
 [[ ${#skill_files[@]} -gt 0 ]] || die "no skill files under skills/difyctl"
+for file in "${skill_files[@]}"; do
+    [[ "$file" == *.md ]] || die "skills/difyctl may hold only .md files (only those are embedded and installed): ${file}"
+done
 
 [[ -f "$entry" ]] || die "entry not found: $entry"
 

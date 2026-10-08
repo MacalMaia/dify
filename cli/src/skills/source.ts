@@ -5,12 +5,14 @@ import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
 import { BaseError } from '@/errors/base'
 import { ErrorCode } from '@/errors/codes'
-import { embeddedFiles } from '@/sys'
+import { embeddedFiles, isCompiledBinary } from '@/sys'
 
 export const SKILL_NAME = 'difyctl'
 export const SKILL_FILE = 'SKILL.md'
 const EMBED_MARKER = `skills/${SKILL_NAME}/`
 const REPO_SKILL_DIR = fileURLToPath(new URL(`../../../${EMBED_MARKER}`, import.meta.url))
+export const NO_EMBEDDED_SKILL =
+  'this difyctl build has no embedded skill; reinstall difyctl or pass --from <folder>'
 
 export type SkillSource = {
   readonly paths: readonly string[]
@@ -55,9 +57,20 @@ export function embeddedSource(files: readonly EmbeddedFile[]): SkillSource {
   }
 }
 
-export async function defaultSource(): Promise<SkillSource> {
-  const files = embeddedFiles().filter((file) => file.name.includes(EMBED_MARKER))
-  return files.length > 0 ? embeddedSource(files) : openDir(REPO_SKILL_DIR)
+export type SourceInputs = Readonly<{ files: readonly EmbeddedFile[]; compiled: boolean }>
+
+// Only a source checkout has the repo folder; a compiled binary without files is a broken build.
+export async function pickSource({ files, compiled }: SourceInputs): Promise<SkillSource> {
+  if (files.length > 0) return embeddedSource(files)
+  if (compiled) throw new BaseError({ code: ErrorCode.Unknown, message: NO_EMBEDDED_SKILL })
+  return openDir(REPO_SKILL_DIR)
+}
+
+export function defaultSource(): Promise<SkillSource> {
+  return pickSource({
+    files: embeddedFiles().filter((file) => file.name.includes(EMBED_MARKER)),
+    compiled: isCompiledBinary(),
+  })
 }
 
 export function openSource(from: string | undefined): Promise<SkillSource> {

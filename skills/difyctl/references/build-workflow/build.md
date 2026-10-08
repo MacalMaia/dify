@@ -14,6 +14,8 @@ In the commands below, `<mode>` is `workflow` for a Workflow app and `advanced_c
 
 Check two things: the human approved the plan, and the human chose how to build.
 
+When you change an existing app, skip creating it and skip the skeleton slice. Start from the current draft: `app.yml` from the first export.
+
 Create the app once:
 
 ```bash
@@ -34,7 +36,7 @@ Work on this one app for the whole build. Change it by importing over its draft.
    difyctl export console_app dsl --app-id <app_id> --json | jq -r .data > difyctl/<app-slug>/app.yml
    ```
 
-2. Write the slice's nodes and edges into `app.yml` by converting the node table. Make no new decisions here. Read dsl.md in this folder for where things go in the YAML.
+2. Write the slice's nodes and edges into `app.yml` by converting the node table. Make no new decisions here. Read [dsl.md](dsl.md) for where things go in the YAML.
 3. Import over the draft with that `draft_hash`:
 
    ```bash
@@ -43,10 +45,11 @@ Work on this one app for the whole build. Change it by importing over its draft.
    ```
 
    - `--yaml-content` takes the YAML text itself. It does not read `@file`.
-   - Check `status` in the result. Go on only when it is `completed`. On `completed-with-warnings`, `pending` or `failed`, stop and read `error` and `warnings`.
-   - A `failed` import with a changed-draft error means someone else changed the draft. Stop. Export again, show the human the difference, and never overwrite it.
+   - A failed import exits 1 with an error envelope on stderr that carries the server's message. Stop and show the human the message.
+   - If the draft changed since your export, the server's message says to export again. Someone else changed the draft. Export again, show the human the difference, and never overwrite it.
+   - A successful import prints a result. Check its `status`. Go on only when it is `completed`. On `completed-with-warnings` or `pending`, stop and read `warnings`.
    - Each import changes the hash. Export again before the next import.
-   - Read dsl.md in this folder for what else an import changes.
+   - Read [dsl.md](dsl.md) for what else an import changes.
 
 4. Test each new node alone with the plan's inputs. Fix it, import again, test again.
 

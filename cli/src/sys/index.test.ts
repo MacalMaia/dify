@@ -1,7 +1,7 @@
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { describe, expect, it } from 'vite-plus/test'
-import { resolvePlatform, SUBDIR } from './index'
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test'
+import { isCompiledBinary, resolvePlatform, SUBDIR } from './index'
 
 describe('resolvePlatform', () => {
   it('id matches process.platform', () => {
@@ -30,5 +30,24 @@ describe('resolvePlatform', () => {
 
   it('atomicReplace is a function', () => {
     expect(resolvePlatform().atomicReplace).toBeTypeOf('function')
+  })
+})
+
+describe('isCompiledBinary', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it.each([
+    ['/$bunfs/root/difyctl', true],
+    ['B:\\~BUN\\root\\difyctl.exe', true],
+    ['/repo/cli/bin/run.ts', false],
+  ])('Bun.main %s -> %s', (main, compiled) => {
+    vi.stubGlobal('Bun', { main })
+    expect(isCompiledBinary()).toBe(compiled)
+  })
+
+  it('is false without Bun', () => {
+    expect(isCompiledBinary()).toBe(false)
   })
 })

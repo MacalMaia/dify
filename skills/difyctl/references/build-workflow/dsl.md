@@ -15,7 +15,7 @@ This is the shape of an exported draft. Values vary. Both examples below are tri
 - Keep the `version` your export gave you. The examples below show an older one.
 - `app.mode` is `workflow` for a Workflow app and `advanced-chat` for a Chatflow app.
 - `workflow.graph.nodes[]`: `{id, type: custom, data: {type, title, ...}, position: {x, y}}`. `data.type` is the node type. The rest of `data` comes from `difyctl describe node_type --node-type <type>`.
-- Set each node's `data.version` to the `version` that `describe node_type` returns.
+- Set each node's `data.version` to the `version` that `describe node_type` returns. The trimmed examples below leave `data.version` out; always add it.
 - `workflow.graph.edges[]`: `{id, source, target, sourceHandle: source, targetHandle: target, data: {sourceType, targetType}}`.
 - Branch nodes use another `sourceHandle`:
   - if-else: each case's `case_id` (the first case is usually `true`), plus `false` for the else branch;

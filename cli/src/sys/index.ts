@@ -8,9 +8,21 @@ export function getEnv(name: string): string | undefined {
 
 export type EmbeddedFile = Blob & { readonly name: string }
 
+type BunGlobal = { embeddedFiles?: readonly EmbeddedFile[]; main?: string }
+
+// A `bun build --compile` binary runs its entry from Bun's virtual filesystem.
+const COMPILED_ENTRY = /^(?:\/\$bunfs\/|[A-Z]:[\\/]~BUN[\\/])/i
+
+function bun(): BunGlobal | undefined {
+  return (globalThis as { Bun?: BunGlobal }).Bun
+}
+
 export function embeddedFiles(): readonly EmbeddedFile[] {
-  const bun = (globalThis as { Bun?: { embeddedFiles?: readonly EmbeddedFile[] } }).Bun
-  return bun?.embeddedFiles ?? []
+  return bun()?.embeddedFiles ?? []
+}
+
+export function isCompiledBinary(): boolean {
+  return COMPILED_ENTRY.test(bun()?.main ?? '')
 }
 
 export function env(): NodeJS.ProcessEnv {

@@ -9,7 +9,7 @@ Four phases. Each ends with a gate; never skip one, even for a small app.
 
 ## Rules
 
-- Keep the working files in `difyctl/<app-slug>/` in the current folder: `spec.md`, `plan.md`, `app.yml`.
+- Keep the working files in `difyctl/<app-slug>/` in the current folder: `spec.md`, `plan.md`, `app.yml`, and `live.yml` when changing an existing app.
 - Requirement ids (`R1`, `R2`, …) from the spec run through the plan, the build and the final report.
 - One writer per draft at a time.
 - Nothing goes live without the human's yes.

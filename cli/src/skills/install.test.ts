@@ -4,7 +4,14 @@ import { dirname, join } from 'node:path'
 import { afterEach, beforeEach, expect, it } from 'vite-plus/test'
 import { ErrorCode } from '@/errors/codes'
 import { installSkill } from './install'
-import { embeddedSource, openDir, SKILL_FILE, SKILL_NAME } from './source'
+import {
+  embeddedSource,
+  NO_EMBEDDED_SKILL,
+  openDir,
+  pickSource,
+  SKILL_FILE,
+  SKILL_NAME,
+} from './source'
 
 let tmp: string
 let from: string
@@ -53,5 +60,12 @@ it('maps embedded names to paths inside the skill', async () => {
 it('refuses a folder without SKILL.md as a usage error', async () => {
   await expect(openDir(join(tmp, 'empty'))).rejects.toMatchObject({
     code: ErrorCode.UsageInvalidFlag,
+  })
+})
+
+it('fails as an internal error when a compiled binary has no embedded skill', async () => {
+  await expect(pickSource({ files: [], compiled: true })).rejects.toMatchObject({
+    code: ErrorCode.Unknown,
+    message: NO_EMBEDDED_SKILL,
   })
 })
