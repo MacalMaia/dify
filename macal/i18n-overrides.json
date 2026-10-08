@@ -1,0 +1,47 @@
+{
+  "_comment": "Textos propios de Macal. Se aplican sobre web/i18n/<locale>/<namespace>.json en el build (macal/apply-i18n-overrides.mjs). Claves planas de i18next (keySeparator: false). Editar aquí y reconstruir la imagen web.",
+  "es-CL": {
+    "login": {
+      "pageTitle": "Hola 👋 Bienvenido a Macal AI Workflows",
+      "pageTitleForE": "Hola 👋 Bienvenido a Macal AI Workflows",
+      "welcome": "Inicia sesión con tu correo de Macal para continuar.",
+      "resetPasswordDesc": "Escribe el correo con el que ingresas a Macal AI Workflows y te enviaremos un código para restablecer tu contraseña.",
+      "go": "Entrar a Macal AI Workflows",
+      "explore": "Explorar Macal AI Workflows",
+      "joinTipEnd": " en Macal AI Workflows",
+      "signup.welcome": "👋 ¡Bienvenido! Completa tus datos para comenzar."
+    },
+    "common": {
+      "members.invitationSentTip": "Invitación enviada. Podrán ingresar a Macal AI Workflows con su correo de Macal.",
+      "menus.apps": "Flujos de IA",
+      "menus.datasets": "Base de conocimiento",
+      "menus.plugins": "Integraciones",
+      "stepByStepTour.title": "Conoce Macal AI Workflows"
+    },
+    "app": {
+      "firstEmpty.importDescription": "¿Tienes un flujo exportado como DSL? Impórtalo aquí para seguir donde lo dejaste."
+    }
+  },
+  "en-US": {
+    "login": {
+      "pageTitle": "Welcome to Macal AI Workflows 👋",
+      "pageTitleForE": "Welcome to Macal AI Workflows 👋",
+      "welcome": "Log in with your Macal email to continue.",
+      "resetPasswordDesc": "Enter the email you use for Macal AI Workflows and we'll send you a code to reset your password.",
+      "go": "Go to Macal AI Workflows",
+      "explore": "Explore Macal AI Workflows",
+      "joinTipEnd": " team on Macal AI Workflows",
+      "signup.welcome": "👋 Welcome! Fill in your details to get started."
+    },
+    "common": {
+      "members.invitationSentTip": "Invitation sent. They can sign in to Macal AI Workflows with their Macal email.",
+      "menus.apps": "AI Workflows",
+      "menus.datasets": "Knowledge",
+      "menus.plugins": "Integrations",
+      "stepByStepTour.title": "Get to know Macal AI Workflows"
+    },
+    "app": {
+      "firstEmpty.importDescription": "Have a workflow exported as DSL? Import it here to continue where you left off."
+    }
+  }
+}

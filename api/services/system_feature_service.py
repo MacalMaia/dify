@@ -1,6 +1,7 @@
 """Deployment-wide feature policies and the public system-features snapshot."""
 
 import logging
+import os
 from collections.abc import Mapping
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -88,6 +89,9 @@ class SystemFeatureService:
     @classmethod
     def get_branding(cls) -> feature_entities.BrandingModel:
         """Return the deployment branding used by server-rendered email."""
+        # Macal: marca propia en los correos (plantillas without-brand + application_title) sin edición Enterprise.
+        if macal_title := os.environ.get("MACAL_EMAIL_BRAND_TITLE"):
+            return feature_entities.BrandingModel(enabled=True, application_title=macal_title)
         branding = feature_entities.BrandingModel(enabled=cls.is_webapp_auth_enabled())
         if not branding.enabled:
             return branding
