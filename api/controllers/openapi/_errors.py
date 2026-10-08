@@ -73,6 +73,10 @@ class OpenApiErrorCode(StrEnum):
     VERSION_NOT_RESTORABLE = "version_not_restorable"
     DRAFT_NOT_FOUND = "draft_not_found"
     SECRET_MASK_UNKNOWN_ID = "secret_mask_unknown_id"
+    WEBAPP_ACCESS_REQUIRES_EE = "webapp_access_requires_ee"
+    NODE_TYPE_NOT_FOUND = "node_type_not_found"
+    NODE_NOT_FOUND = "node_not_found"
+    ACCESS_SUBJECTS_INVALID = "access_subjects_invalid"
     SECRET_MASK_NOT_SECRET = "secret_mask_not_secret"
 
 
@@ -288,6 +292,35 @@ class VersionNotFound(OpenApiError):  # noqa: N818
     code = 404
     error_code = OpenApiErrorCode.VERSION_NOT_FOUND
     description = "No version with this id exists for this app."
+
+
+class WebAppAccessRequiresEE(OpenApiError):  # noqa: N818
+    code = 403
+    error_code = OpenApiErrorCode.WEBAPP_ACCESS_REQUIRES_EE
+    description = "Web-app access control needs Dify Enterprise with web-app sign-in turned on."
+
+
+class NodeTypeNotFound(OpenApiError):  # noqa: N818
+    code = 404
+    error_code = OpenApiErrorCode.NODE_TYPE_NOT_FOUND
+    description = "No node type with this name exists on this server."
+    hint = "List the node types with get.node_type."
+
+
+class NodeNotFound(OpenApiError):  # noqa: N818
+    code = 404
+    error_code = OpenApiErrorCode.NODE_NOT_FOUND
+    description = "The draft has no node with this id."
+
+
+class AccessSubjectsInvalid(OpenApiError):  # noqa: N818
+    code = 400
+    error_code = OpenApiErrorCode.ACCESS_SUBJECTS_INVALID
+    description = (
+        "Subjects are required for access_mode private and not allowed otherwise; "
+        "each needs an id and a type of account or group."
+    )
+    hint = "Find ids with get.access_subject."
 
 
 class VersionNotRestorable(OpenApiError):  # noqa: N818

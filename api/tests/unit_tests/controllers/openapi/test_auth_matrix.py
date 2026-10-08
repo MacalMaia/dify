@@ -83,6 +83,7 @@ from controllers.openapi.auth import subjects
 from controllers.openapi.auth.requirements import (
     CheckAppAccess,
     CheckAppApiEnabled,
+    CheckAppMode,
     CheckRBACPermission,
     CheckScope,
     CheckSubject,
@@ -1324,6 +1325,11 @@ def _config(_requirement: Requirement) -> object:
 @_config.register
 def _(requirement: CheckSubject) -> object:
     return requirement.allowed
+
+
+@_config.register
+def _(requirement: CheckAppMode) -> object:
+    return requirement.modes
 
 
 @_config.register
