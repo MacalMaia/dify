@@ -15,7 +15,7 @@ from enums import DeploymentEdition
 from fields.workflow_run_fields import WorkflowRunPaginationResponse
 from graphon.variables import SegmentType
 from libs.helper import EmailStr, UUIDStr, UUIDStrOrEmpty, to_timestamp, uuid_value
-from models.model import AppMode
+from models.model import AppMode, IconType
 from services.app_dsl_service import Import
 
 # Server-side cap on `limit` query param for /openapi/v1/* list endpoints.
@@ -690,7 +690,9 @@ class CreateAppPayload(BaseModel):
 
     name: str = Field(min_length=1, description="App name")
     description: str | None = Field(default=None, max_length=400, description="App description")
-    icon_type: str | None = Field(default=None, description="emoji, image or link")
+    icon_type: Literal[IconType.EMOJI, IconType.IMAGE, IconType.LINK] | None = Field(
+        default=None, description="emoji, image or link"
+    )
     icon: str | None = Field(default=None, description="Emoji, file id or URL, per icon_type")
     icon_background: str | None = Field(default=None, description="Background colour for an emoji icon")
 
