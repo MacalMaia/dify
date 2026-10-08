@@ -74,6 +74,7 @@ class OpenApiErrorCode(StrEnum):
     DRAFT_NOT_FOUND = "draft_not_found"
     SECRET_MASK_UNKNOWN_ID = "secret_mask_unknown_id"
     WEBAPP_ACCESS_REQUIRES_EE = "webapp_access_requires_ee"
+    WEBAPP_ACCESS_UNAVAILABLE = "webapp_access_unavailable"
     NODE_TYPE_NOT_FOUND = "node_type_not_found"
     NODE_NOT_FOUND = "node_not_found"
     ACCESS_SUBJECTS_INVALID = "access_subjects_invalid"
@@ -163,7 +164,7 @@ class OpenApiErrorFormatter:
         try:
             body = ErrorBody(
                 code=self._resolve_code(e, status_code),
-                message=self._resolve_message(merged, status_code),
+                message=self._resolve_message(e, merged, status_code),
                 status=status_code,
                 hint=self._resolve_hint(e),
                 details=self._extract_details(e, merged),
@@ -192,8 +193,9 @@ class OpenApiErrorFormatter:
             return str(explicit)
         return str(_CODE_BY_STATUS.get(status_code, OpenApiErrorCode.UNKNOWN))
 
-    def _resolve_message(self, merged: dict[str, Any], status_code: int) -> str:
-        if status_code >= 500:
+    def _resolve_message(self, e: Exception, merged: dict[str, Any], status_code: int) -> str:
+        # an OpenApiError's message is declared, so it is safe to show even on a 5xx
+        if status_code >= 500 and not isinstance(e, OpenApiError):
             return _GENERIC_500_MESSAGE
         message = merged.get("message")
         if isinstance(message, str) and message:
@@ -298,6 +300,13 @@ class WebAppAccessRequiresEE(OpenApiError):  # noqa: N818
     code = 403
     error_code = OpenApiErrorCode.WEBAPP_ACCESS_REQUIRES_EE
     description = "Web-app access control needs Dify Enterprise with web-app sign-in turned on."
+
+
+class WebAppAccessUnavailable(OpenApiError):  # noqa: N818
+    code = 503
+    error_code = OpenApiErrorCode.WEBAPP_ACCESS_UNAVAILABLE
+    description = "Web-app access could not be read or changed."
+    hint = "Enterprise does not serve web-app access subjects yet, or is unreachable."
 
 
 class NodeTypeNotFound(OpenApiError):  # noqa: N818

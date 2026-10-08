@@ -1218,7 +1218,7 @@ Upload a file to use as an input variable when running the app
 
 | Code | Description | Schema |
 | ---- | ----------- | ------ |
-| 200 | Web app | **application/json**: [ChatWebApp](#chatwebapp)<br> |
+| 200 | Web app | **application/json**: [AgentWebApp](#agentwebapp)<br> |
 | default | Error | **application/json**: [ErrorBody](#errorbody)<br> |
 
 ### [PATCH] /apps/{app_id}/webapp/agent
@@ -1238,7 +1238,7 @@ Upload a file to use as an input variable when running the app
 
 | Code | Description | Schema |
 | ---- | ----------- | ------ |
-| 200 | Web app | **application/json**: [ChatWebApp](#chatwebapp)<br> |
+| 200 | Web app | **application/json**: [AgentWebApp](#agentwebapp)<br> |
 | 422 | Validation error | **application/json**: [ErrorBody](#errorbody)<br> |
 | default | Error | **application/json**: [ErrorBody](#errorbody)<br> |
 
@@ -1862,7 +1862,7 @@ Upload a file to use as an input variable when running the app
 | email | string |  | No |
 | id | string |  | Yes |
 | member_count | integer |  | No |
-| name | string |  | Yes |
+| name | string |  | No |
 | type | string |  | Yes |
 
 #### AccountPayload
@@ -1926,6 +1926,7 @@ A chat run against an advanced-chat (chatflow) app, which can also pin a workflo
 | privacy_policy | string |  | No |
 | show_workflow_steps | boolean |  | No |
 | title | string |  | No |
+| url | string |  | No |
 | use_icon_as_answer_icon | boolean |  | No |
 
 #### AdvancedChatWebAppPatch
@@ -1978,10 +1979,34 @@ A chat run against an advanced-chat (chatflow) app, which can also pin a workflo
 
 | Name | Type | Description | Required |
 | ---- | ---- | ----------- | -------- |
+| access_ready | boolean |  | Yes |
 | api_rph | integer |  | No |
 | api_rpm | integer |  | No |
 | base_url | string |  | Yes |
 | enabled | boolean |  | Yes |
+
+#### AgentWebApp
+
+| Name | Type | Description | Required |
+| ---- | ---- | ----------- | -------- |
+| access_ready | boolean |  | Yes |
+| access_token | string |  | No |
+| app_base_url | string |  | Yes |
+| chat_color_theme | string |  | No |
+| chat_color_theme_inverted | boolean |  | No |
+| copyright | string |  | No |
+| custom_disclaimer | string |  | No |
+| default_language | string |  | No |
+| description | string |  | No |
+| enabled | boolean |  | Yes |
+| icon | string |  | No |
+| icon_background | string |  | No |
+| icon_type | string |  | No |
+| input_placeholder | string |  | No |
+| privacy_policy | string |  | No |
+| title | string |  | No |
+| url | string |  | No |
+| use_icon_as_answer_icon | boolean |  | No |
 
 #### AppDescribeInfo
 
@@ -2192,6 +2217,7 @@ mode is a closed enum of listable app types.
 | input_placeholder | string |  | No |
 | privacy_policy | string |  | No |
 | title | string |  | No |
+| url | string |  | No |
 | use_icon_as_answer_icon | boolean |  | No |
 
 #### ChatWebAppPatch
@@ -2879,14 +2905,14 @@ Page of published versions, newest first; there is no total, `hints` carries the
 | icon_type | string |  | No |
 | privacy_policy | string |  | No |
 | title | string |  | No |
+| url | string |  | No |
 
 #### WebAppAccess
 
 | Name | Type | Description | Required |
 | ---- | ---- | ----------- | -------- |
 | access_mode | string |  | Yes |
-| groups | [ object ] |  | No |
-| members | [ object ] |  | No |
+| subjects | [ [AccessSubjectRow](#accesssubjectrow) ] |  | Yes |
 
 #### WebAppAccessMode
 
@@ -2922,6 +2948,7 @@ Page of published versions, newest first; there is no total, `hints` carries the
 | ---- | ---- | ----------- | -------- |
 | access_token | string |  | No |
 | app_base_url | string |  | Yes |
+| url | string |  | No |
 
 #### WorkflowRunData
 
@@ -3036,6 +3063,7 @@ Page of published versions, newest first; there is no total, `hints` carries the
 | privacy_policy | string |  | No |
 | show_workflow_steps | boolean |  | No |
 | title | string |  | No |
+| url | string |  | No |
 
 #### WorkflowWebAppPatch
 

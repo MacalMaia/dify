@@ -1020,10 +1020,10 @@ _WEBAPP_ACCESS_EDITOR: dict[Case, Expect] = {
     Case.RBAC_ON_LOW_ROLE: DENY_NEEDS_WEBAPP_EE,
 }
 
-_ACCESS_SUBJECT_MEMBER: dict[Case, Expect] = {
+_ACCESS_SUBJECT_EDITOR: dict[Case, Expect] = {
     **_ACCOUNT_MEMBER_NO_ROLE,
     Case.MEMBER: DENY_NEEDS_WEBAPP_EE,
-    Case.LOW_ROLE: DENY_NEEDS_WEBAPP_EE,
+    Case.LOW_ROLE: DENY_ROLE,
     Case.RBAC_ON_LOW_ROLE: DENY_NEEDS_WEBAPP_EE,
     Case.RBAC_ON_DENIED: DENY_NEEDS_WEBAPP_EE,
 }
@@ -1057,7 +1057,7 @@ MATRIX: dict[str, dict[Case, Expect]] = {
     "webapp.set.workflow": dict(_ACCOUNT_EDITOR_SETTINGS),
     "webapp.reset.workflow": dict(_ACCOUNT_EDITOR_SETTINGS),
     "webapp_access.describe.workflow": dict(_WEBAPP_ACCESS_EDITOR),
-    "access_subject.list": dict(_ACCESS_SUBJECT_MEMBER),
+    "access_subject.list": dict(_ACCESS_SUBJECT_EDITOR),
     "apps.describe": dict(_ACCOUNT_READER_APP),
     "app_dsl.export": dict(_ACCOUNT_EDITOR_APP),
     "app_run.draft.workflow": dict(_ACCOUNT_EDITOR_APP),
@@ -1295,8 +1295,8 @@ DECLARED: dict[str, tuple[Requirement, ...]] = {
     "node_types.describe": _REQ_NODE_TYPES,
     "app_create.workflow": _REQ_APP_CREATE,
     "app_create.advanced_chat": _REQ_APP_CREATE,
-    "app_workflow.node_run.workflow": _REQ_DRAFT_RUN,
-    "app_workflow.node_run.advanced_chat": _REQ_DRAFT_RUN,
+    "app_workflow.node_run.workflow": (*_REQ_DRAFT_RUN, CheckAppMode(AppMode.WORKFLOW)),
+    "app_workflow.node_run.advanced_chat": (*_REQ_DRAFT_RUN, CheckAppMode(AppMode.ADVANCED_CHAT)),
     "app_info.describe.workflow": _settings_req(
         AppMode.WORKFLOW, RBACPermission.APP_VIEW_LAYOUT, PlainApp(), Scope.APPS_READ, None
     ),
@@ -1485,7 +1485,11 @@ DECLARED: dict[str, tuple[Requirement, ...]] = {
         ),
         CheckWebAppAuthEnterprise(),
     ),
-    "access_subject.list": (*_REQ_ACCOUNT_WORKSPACE_READ_MEMBER, CheckWebAppAuthEnterprise()),
+    "access_subject.list": (
+        *_REQ_ACCOUNT_WORKSPACE_READ_MEMBER,
+        CheckWorkspaceRole(_EDITOR_UP),
+        CheckWebAppAuthEnterprise(),
+    ),
     "app_run.stop": _REQ_RUN,
     "files.upload": _REQ_FILES,
     "human_input_form.get": _REQ_RUN_FORM,

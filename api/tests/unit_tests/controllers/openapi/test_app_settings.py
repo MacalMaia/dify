@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from controllers.openapi import _app_settings
-from controllers.openapi._errors import AccessSubjectsInvalid
+from controllers.openapi._errors import AccessSubjectsInvalid, WebAppAccessUnavailable
 from controllers.openapi._models import (
     AgentAppInfo,
     AgentAppInfoPatch,
@@ -17,6 +17,7 @@ from controllers.openapi._models import (
 )
 from controllers.openapi.auth.context import Context
 from services.entities.app_entities import AppRecord
+from services.webapp_access_query_service import WebAppAccessUnavailableError
 
 
 def _record() -> AppRecord:
@@ -70,20 +71,35 @@ def test_set_app_info_without_role_keeps_the_agent_role(console: MagicMock) -> N
 
 
 @pytest.mark.parametrize(
-    "body",
+    ("body", "read_error", "error"),
     [
-        WebAppAccessPayload(access_mode="private", subjects=[]),
-        WebAppAccessPayload(access_mode="public", subjects=[{"id": "u1", "type": "account"}]),
-        WebAppAccessPayload(access_mode="private", subjects=[{"id": "u1", "type": "member"}]),
-        WebAppAccessPayload(access_mode="private", subjects=[{"type": "group"}]),
+        (WebAppAccessPayload(access_mode="private", subjects=[]), None, AccessSubjectsInvalid),
+        (
+            WebAppAccessPayload(access_mode="public", subjects=[{"id": "u1", "type": "account"}]),
+            None,
+            AccessSubjectsInvalid,
+        ),
+        (
+            WebAppAccessPayload(access_mode="private", subjects=[{"id": "u1", "type": "member"}]),
+            None,
+            AccessSubjectsInvalid,
+        ),
+        (WebAppAccessPayload(access_mode="private", subjects=[{"type": "group"}]), None, AccessSubjectsInvalid),
+        (WebAppAccessPayload(access_mode="public"), WebAppAccessUnavailableError(), WebAppAccessUnavailable),
     ],
 )
-def test_set_webapp_access_refuses_bad_subjects(monkeypatch: pytest.MonkeyPatch, body: WebAppAccessPayload) -> None:
+def test_set_webapp_access_writes_nothing_when_refused(
+    monkeypatch: pytest.MonkeyPatch,
+    body: WebAppAccessPayload,
+    read_error: Exception | None,
+    error: type[Exception],
+) -> None:
     console = MagicMock()
+    console.access_subjects.side_effect = read_error
     monkeypatch.setattr(
         _app_settings, "application_services", lambda: SimpleNamespace(apps=SimpleNamespace(console=console))
     )
-    with pytest.raises(AccessSubjectsInvalid):
+    with pytest.raises(error):
         _app_settings.update_webapp_access(_CTX, body)
     console.update_access.assert_not_called()
 
@@ -101,7 +117,7 @@ def test_set_webapp_calls_only_what_changed(
         "application_services",
         lambda: SimpleNamespace(apps=SimpleNamespace(console=console), app_sites=sites),
     )
-    monkeypatch.setattr(_app_settings, "webapp", lambda _ctx, _model: None)
-    _app_settings.update_webapp(_CTX, patch, WebApp)
+    monkeypatch.setattr(_app_settings, "webapp", lambda _ctx, _model, _path: None)
+    _app_settings.update_webapp(_CTX, patch, WebApp, _app_settings.WebAppPath.COMPLETION)
     assert sites.update.called is site_called
     assert console.set_site_enabled.called is toggle_called

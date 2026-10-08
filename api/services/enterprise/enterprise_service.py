@@ -331,8 +331,16 @@ class EnterpriseService:
             return EnterpriseRequest.send_request("GET", "/webapp/app/subjects", params={"appId": app_id})
 
         @classmethod
-        def search_access_subjects(cls, *, keyword: str, page: int, limit: int, group_id: str | None) -> dict[str, Any]:
-            params: dict[str, str | int] = {"keyword": keyword, "pageNumber": page, "resultsPerPage": limit}
+        def search_access_subjects(
+            cls, *, tenant_id: str, account_id: str, keyword: str, page: int, limit: int, group_id: str | None
+        ) -> dict[str, Any]:
+            params: dict[str, str | int] = {
+                "tenantId": tenant_id,
+                "accountId": account_id,
+                "keyword": keyword,
+                "pageNumber": page,
+                "resultsPerPage": limit,
+            }
             if group_id is not None:
                 params["groupId"] = group_id
             return EnterpriseRequest.send_request("GET", "/webapp/app/subject/search", params=params)

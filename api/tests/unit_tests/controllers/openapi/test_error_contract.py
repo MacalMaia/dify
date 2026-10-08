@@ -39,6 +39,7 @@ from controllers.openapi._errors import (
     OpenApiErrorCode,
     OpenApiErrorFormatter,
     RecipientSurfaceMismatch,
+    WebAppAccessUnavailable,
 )
 from controllers.service_api.app.error import (
     AgentNotPublishedError,
@@ -184,18 +185,19 @@ class TestOpenApiErrorFormatter:
 
 
 class TestQuotaExceptions:
-    @pytest.mark.parametrize("exc_class", [MemberLimitExceeded, MemberLicenseExceeded])
+    @pytest.mark.parametrize("exc_class", [MemberLimitExceeded, MemberLicenseExceeded, WebAppAccessUnavailable])
     def test_quota_exception_carries_declared_code_and_message(self, fmt, exc_class):
         # Single source: assertions read the class attributes, no re-typed strings.
+        # A 5xx OpenApiError keeps its declared message instead of the generic one.
         e = exc_class()
-        data = {"code": "forbidden", "message": e.description, "status": 403}
+        data = {"code": "forbidden", "message": e.description, "status": exc_class.code}
 
-        wire = fmt.finalize(e, data, 403)
+        wire = fmt.finalize(e, data, exc_class.code)
 
         assert wire["code"] == exc_class.error_code
         assert wire["message"] == exc_class.description
         assert wire["hint"] == exc_class.hint
-        assert wire["status"] == 403
+        assert wire["status"] == exc_class.code
 
 
 class TestWireContract:
@@ -308,6 +310,7 @@ ERROR_MATRIX = [
     (HumanInputFormNotFound(), 404, "form_not_found"),
     (RecipientSurfaceMismatch(), 403, "recipient_surface_mismatch"),
     (CatalogStale(), 412, "catalog_stale"),
+    (WebAppAccessUnavailable(), 503, "webapp_access_unavailable"),
 ]
 
 

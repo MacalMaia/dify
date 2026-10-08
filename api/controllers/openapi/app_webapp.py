@@ -11,12 +11,14 @@ from constants.oauth_bearer import Scope
 from controllers.common.rbac import AgentBehindApp, PlainApp, RBACCheck, RBACPermission
 from controllers.openapi import _app_settings as settings
 from controllers.openapi import openapi_ns
+from controllers.openapi._app_settings import WebAppPath
 from controllers.openapi._contract import Example, Kind, endpoint
 from controllers.openapi._models import (
     AccessSubjectListResponse,
     AccessSubjectQuery,
     AdvancedChatWebApp,
     AdvancedChatWebAppPatch,
+    AgentWebApp,
     ChatWebApp,
     ChatWebAppPatch,
     WebApp,
@@ -35,6 +37,7 @@ from controllers.openapi.auth.requirements import (
     CheckSubject,
     CheckWebAppAuthEnterprise,
     CheckWorkspaceMember,
+    CheckWorkspaceRole,
     account_settings_guards,
 )
 from controllers.openapi.auth.subjects import AccountSubject
@@ -70,7 +73,7 @@ class WorkflowWebAppApi(Resource):
         returns=(HTTPStatus.OK, WorkflowWebApp, "Web app"),
     )
     def get(self, ctx: Context, app_id: str):
-        return settings.webapp(ctx, WorkflowWebApp)
+        return settings.webapp(ctx, WorkflowWebApp, WebAppPath.WORKFLOW)
 
     @endpoint(
         op="set.webapp.workflow",
@@ -84,7 +87,7 @@ class WorkflowWebAppApi(Resource):
         returns=(HTTPStatus.OK, WorkflowWebApp, "Web app"),
     )
     def patch(self, ctx: Context, app_id: str, *, body: WorkflowWebAppPatch):
-        return settings.update_webapp(ctx, body, WorkflowWebApp)
+        return settings.update_webapp(ctx, body, WorkflowWebApp, WebAppPath.WORKFLOW)
 
 
 @openapi_ns.route("/apps/<string:app_id>/webapp/workflow:reset")
@@ -100,7 +103,7 @@ class WorkflowWebAppResetApi(Resource):
         returns=(HTTPStatus.OK, WebAppToken, "New URL token"),
     )
     def post(self, ctx: Context, app_id: str):
-        return settings.reset_webapp(ctx)
+        return settings.reset_webapp(ctx, WebAppPath.WORKFLOW)
 
 
 @openapi_ns.route("/apps/<string:app_id>/webapp-access/workflow")
@@ -146,7 +149,7 @@ class AdvancedChatWebAppApi(Resource):
         returns=(HTTPStatus.OK, AdvancedChatWebApp, "Web app"),
     )
     def get(self, ctx: Context, app_id: str):
-        return settings.webapp(ctx, AdvancedChatWebApp)
+        return settings.webapp(ctx, AdvancedChatWebApp, WebAppPath.CHAT)
 
     @endpoint(
         op="set.webapp.advanced_chat",
@@ -160,7 +163,7 @@ class AdvancedChatWebAppApi(Resource):
         returns=(HTTPStatus.OK, AdvancedChatWebApp, "Web app"),
     )
     def patch(self, ctx: Context, app_id: str, *, body: AdvancedChatWebAppPatch):
-        return settings.update_webapp(ctx, body, AdvancedChatWebApp)
+        return settings.update_webapp(ctx, body, AdvancedChatWebApp, WebAppPath.CHAT)
 
 
 @openapi_ns.route("/apps/<string:app_id>/webapp/advanced-chat:reset")
@@ -176,7 +179,7 @@ class AdvancedChatWebAppResetApi(Resource):
         returns=(HTTPStatus.OK, WebAppToken, "New URL token"),
     )
     def post(self, ctx: Context, app_id: str):
-        return settings.reset_webapp(ctx)
+        return settings.reset_webapp(ctx, WebAppPath.CHAT)
 
 
 @openapi_ns.route("/apps/<string:app_id>/webapp-access/advanced-chat")
@@ -224,7 +227,7 @@ class ChatWebAppApi(Resource):
         returns=(HTTPStatus.OK, ChatWebApp, "Web app"),
     )
     def get(self, ctx: Context, app_id: str):
-        return settings.webapp(ctx, ChatWebApp)
+        return settings.webapp(ctx, ChatWebApp, WebAppPath.CHAT)
 
     @endpoint(
         op="set.webapp.chat",
@@ -238,7 +241,7 @@ class ChatWebAppApi(Resource):
         returns=(HTTPStatus.OK, ChatWebApp, "Web app"),
     )
     def patch(self, ctx: Context, app_id: str, *, body: ChatWebAppPatch):
-        return settings.update_webapp(ctx, body, ChatWebApp)
+        return settings.update_webapp(ctx, body, ChatWebApp, WebAppPath.CHAT)
 
 
 @openapi_ns.route("/apps/<string:app_id>/webapp/chat:reset")
@@ -254,7 +257,7 @@ class ChatWebAppResetApi(Resource):
         returns=(HTTPStatus.OK, WebAppToken, "New URL token"),
     )
     def post(self, ctx: Context, app_id: str):
-        return settings.reset_webapp(ctx)
+        return settings.reset_webapp(ctx, WebAppPath.CHAT)
 
 
 @openapi_ns.route("/apps/<string:app_id>/webapp-access/chat")
@@ -300,7 +303,7 @@ class AgentChatWebAppApi(Resource):
         returns=(HTTPStatus.OK, ChatWebApp, "Web app"),
     )
     def get(self, ctx: Context, app_id: str):
-        return settings.webapp(ctx, ChatWebApp)
+        return settings.webapp(ctx, ChatWebApp, WebAppPath.CHAT)
 
     @endpoint(
         op="set.webapp.agent_chat",
@@ -314,7 +317,7 @@ class AgentChatWebAppApi(Resource):
         returns=(HTTPStatus.OK, ChatWebApp, "Web app"),
     )
     def patch(self, ctx: Context, app_id: str, *, body: ChatWebAppPatch):
-        return settings.update_webapp(ctx, body, ChatWebApp)
+        return settings.update_webapp(ctx, body, ChatWebApp, WebAppPath.CHAT)
 
 
 @openapi_ns.route("/apps/<string:app_id>/webapp/agent-chat:reset")
@@ -330,7 +333,7 @@ class AgentChatWebAppResetApi(Resource):
         returns=(HTTPStatus.OK, WebAppToken, "New URL token"),
     )
     def post(self, ctx: Context, app_id: str):
-        return settings.reset_webapp(ctx)
+        return settings.reset_webapp(ctx, WebAppPath.CHAT)
 
 
 @openapi_ns.route("/apps/<string:app_id>/webapp-access/agent-chat")
@@ -376,7 +379,7 @@ class CompletionWebAppApi(Resource):
         returns=(HTTPStatus.OK, WebApp, "Web app"),
     )
     def get(self, ctx: Context, app_id: str):
-        return settings.webapp(ctx, WebApp)
+        return settings.webapp(ctx, WebApp, WebAppPath.COMPLETION)
 
     @endpoint(
         op="set.webapp.completion",
@@ -390,7 +393,7 @@ class CompletionWebAppApi(Resource):
         returns=(HTTPStatus.OK, WebApp, "Web app"),
     )
     def patch(self, ctx: Context, app_id: str, *, body: WebAppPatch):
-        return settings.update_webapp(ctx, body, WebApp)
+        return settings.update_webapp(ctx, body, WebApp, WebAppPath.COMPLETION)
 
 
 @openapi_ns.route("/apps/<string:app_id>/webapp/completion:reset")
@@ -406,7 +409,7 @@ class CompletionWebAppResetApi(Resource):
         returns=(HTTPStatus.OK, WebAppToken, "New URL token"),
     )
     def post(self, ctx: Context, app_id: str):
-        return settings.reset_webapp(ctx)
+        return settings.reset_webapp(ctx, WebAppPath.COMPLETION)
 
 
 @openapi_ns.route("/apps/<string:app_id>/webapp-access/completion")
@@ -449,10 +452,10 @@ class AgentWebAppApi(Resource):
         summary="An agent app's web app: on or off, its URL token and page settings",
         examples=(_WEBAPP_EXAMPLE,),
         requirements=account_settings_guards(_AGENT_SITE_READ, scope=Scope.APPS_READ, mode=AppMode.AGENT, roles=None),
-        returns=(HTTPStatus.OK, ChatWebApp, "Web app"),
+        returns=(HTTPStatus.OK, AgentWebApp, "Web app"),
     )
     def get(self, ctx: Context, app_id: str):
-        return settings.webapp(ctx, ChatWebApp)
+        return settings.webapp(ctx, AgentWebApp, WebAppPath.AGENT)
 
     @endpoint(
         op="set.webapp.agent",
@@ -463,10 +466,10 @@ class AgentWebAppApi(Resource):
             _AGENT_SITE_WRITE, scope=Scope.WORKSPACE_WRITE, mode=AppMode.AGENT, roles=EDITOR_ROLES
         ),
         body=ChatWebAppPatch,
-        returns=(HTTPStatus.OK, ChatWebApp, "Web app"),
+        returns=(HTTPStatus.OK, AgentWebApp, "Web app"),
     )
     def patch(self, ctx: Context, app_id: str, *, body: ChatWebAppPatch):
-        return settings.update_webapp(ctx, body, ChatWebApp)
+        return settings.update_webapp(ctx, body, AgentWebApp, WebAppPath.AGENT)
 
 
 @openapi_ns.route("/apps/<string:app_id>/webapp/agent:reset")
@@ -482,7 +485,7 @@ class AgentWebAppResetApi(Resource):
         returns=(HTTPStatus.OK, WebAppToken, "New URL token"),
     )
     def post(self, ctx: Context, app_id: str):
-        return settings.reset_webapp(ctx)
+        return settings.reset_webapp(ctx, WebAppPath.AGENT)
 
 
 @openapi_ns.route("/apps/<string:app_id>/webapp-access/agent")
@@ -533,10 +536,11 @@ class AccessSubjectListApi(Resource):
             CheckSubject(allowed=(AccountSubject,)),
             CheckScope(Scope.WORKSPACE_READ),
             CheckWorkspaceMember(),
+            CheckWorkspaceRole(EDITOR_ROLES),
             CheckWebAppAuthEnterprise(),
         ),
         query=AccessSubjectQuery,
         returns=(HTTPStatus.OK, AccessSubjectListResponse, "Members and groups"),
     )
     def get(self, ctx: Context, workspace_id: str, *, query: AccessSubjectQuery):
-        return settings.access_subjects(query)
+        return settings.access_subjects(ctx, query)

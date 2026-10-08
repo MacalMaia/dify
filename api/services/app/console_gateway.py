@@ -6,10 +6,11 @@ import json
 from collections.abc import Callable
 from contextlib import AbstractContextManager
 from dataclasses import dataclass, replace
-from typing import Any, BinaryIO, Final, Literal, override
+from typing import BinaryIO, Final, Literal, override
 from uuid import UUID
 
 import httpx
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -47,6 +48,9 @@ from services.app_service import AppService
 from services.enterprise import rbac_service
 from services.enterprise.enterprise_service import EnterpriseService
 from services.entities.app_entities import (
+    AccessSubject,
+    AccessSubjectPage,
+    AccessSubjectType,
     AppCreationSettings,
     AppDeletion,
     AppEvent,
@@ -69,6 +73,7 @@ from services.feature_service import FeatureService
 from services.recommended_app_package_service import RecommendedAppPackageService
 from services.system_feature_service import SystemFeatureService
 from services.webapp_access_query_service import WebAppAccessUnavailableError
+from services.workflow_service import WorkflowService
 from tasks.initialize_created_app_rbac_access_task import initialize_created_app_rbac_access_task
 
 _ENTERPRISE_UNAVAILABLE: Final = (
@@ -76,7 +81,56 @@ _ENTERPRISE_UNAVAILABLE: Final = (
     httpx.RequestError,
     json.JSONDecodeError,
     UnicodeDecodeError,
+    ValidationError,
 )
+
+
+class _EnterpriseGroup(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: str
+    name: str | None = None
+    group_size: int | None = Field(default=None, alias="groupSize")
+
+    def subject(self) -> AccessSubject:
+        return AccessSubject(id=self.id, type=AccessSubjectType.GROUP, name=self.name, member_count=self.group_size)
+
+
+class _EnterpriseMember(BaseModel):
+    id: str
+    name: str | None = None
+    email: str | None = None
+
+    def subject(self) -> AccessSubject:
+        return AccessSubject(id=self.id, type=AccessSubjectType.ACCOUNT, name=self.name, email=self.email)
+
+
+class _EnterpriseAppSubjects(BaseModel):
+    """Enterprise omits an empty list, as proto3 JSON does."""
+
+    groups: list[_EnterpriseGroup] = Field(default_factory=list)
+    members: list[_EnterpriseMember] = Field(default_factory=list)
+
+
+class _EnterpriseCandidate(BaseModel):
+    subject_id: str = Field(alias="subjectId")
+    subject_type: str = Field(alias="subjectType")
+    group: _EnterpriseGroup | None = Field(default=None, alias="groupData")
+    account: _EnterpriseMember | None = Field(default=None, alias="accountData")
+
+    def subject(self) -> AccessSubject:
+        return AccessSubject(
+            id=self.subject_id,
+            type=self.subject_type,
+            name=self.group.name if self.group else self.account.name if self.account else None,
+            email=self.account.email if self.account else None,
+            member_count=self.group.group_size if self.group else None,
+        )
+
+
+class _EnterpriseCandidatePage(BaseModel):
+    subjects: list[_EnterpriseCandidate] = Field(default_factory=list)
+    has_more: bool = Field(default=False, alias="hasMore")
 
 
 @dataclass(frozen=True)
@@ -203,27 +257,42 @@ class EnterpriseConsoleAppAccess(ConsoleAppAccess):
         return EnterpriseService.WebAppAuth.get_app_access_mode_by_id(app_id=app_id).access_mode
 
     @override
-    def access_subjects(self, app_id: str) -> dict[str, Any]:
+    def access_subjects(self, app_id: str) -> list[AccessSubject]:
         try:
-            return EnterpriseService.WebAppAuth.get_app_subjects(app_id)
+            payload = _EnterpriseAppSubjects.model_validate(EnterpriseService.WebAppAuth.get_app_subjects(app_id))
         except _ENTERPRISE_UNAVAILABLE as error:
             raise WebAppAccessUnavailableError from error
+        return [group.subject() for group in payload.groups] + [member.subject() for member in payload.members]
 
     @override
     def update_access(self, app_id: str, access_mode: WebAppAccessMode, subjects: list[dict[str, str]]) -> None:
         try:
-            EnterpriseService.WebAppAuth.update_app_access_mode(app_id, access_mode, subjects)
+            updated = EnterpriseService.WebAppAuth.update_app_access_mode(app_id, access_mode, subjects)
         except _ENTERPRISE_UNAVAILABLE as error:
             raise WebAppAccessUnavailableError from error
+        if not updated:
+            raise WebAppAccessUnavailableError("Enterprise did not save the web-app access")
 
     @override
-    def search_access_subjects(self, *, keyword: str, page: int, limit: int, group_id: str | None) -> dict[str, Any]:
+    def search_access_subjects(
+        self, context: RequestContext, *, keyword: str, page: int, limit: int, group_id: str | None
+    ) -> AccessSubjectPage:
         try:
-            return EnterpriseService.WebAppAuth.search_access_subjects(
-                keyword=keyword, page=page, limit=limit, group_id=group_id
+            payload = _EnterpriseCandidatePage.model_validate(
+                EnterpriseService.WebAppAuth.search_access_subjects(
+                    tenant_id=context.active_workspace_id,
+                    account_id=context.account_id,
+                    keyword=keyword,
+                    page=page,
+                    limit=limit,
+                    group_id=group_id,
+                )
             )
         except _ENTERPRISE_UNAVAILABLE as error:
             raise WebAppAccessUnavailableError from error
+        return AccessSubjectPage(
+            subjects=[candidate.subject() for candidate in payload.subjects], has_more=payload.has_more
+        )
 
     @override
     def can_export_version(self, workspace_id: str) -> bool:
@@ -430,6 +499,21 @@ class AppLifecycleGateway(AppLifecycle):
                 except IntegrityError as exc:
                     raise AgentNameConflictError() from exc
             return app_record(app, session=session, projection="detail-with-site")
+
+    @override
+    def create_draft(self, context: RequestContext, app_id: str) -> None:
+        # what the console editor saves on first open; built per call because validation fills features in place
+        with self._session_factory() as session:
+            WorkflowService(self._session_factory).sync_draft_workflow(
+                app_model=require_console_app(session, context, app_id),
+                graph={"nodes": [], "edges": []},
+                features={"retriever_resource": {"enabled": True}},
+                unique_hash=None,
+                account=console_app_actor(session, context),
+                environment_variables=[],
+                conversation_variables=[],
+                session=session,
+            )
 
     @override
     def delete(self, context: RequestContext, app_id: str) -> AppDeletion:

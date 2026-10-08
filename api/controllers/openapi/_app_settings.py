@@ -7,11 +7,11 @@ from enum import StrEnum
 
 from flask import request
 from pydantic import BaseModel
-from werkzeug.exceptions import NotFound, ServiceUnavailable
+from werkzeug.exceptions import NotFound
 
 from configs import dify_config
 from controllers.common.rbac.locators import agent_binding
-from controllers.openapi._errors import AccessSubjectsInvalid
+from controllers.openapi._errors import AccessSubjectsInvalid, WebAppAccessUnavailable
 from controllers.openapi._models import (
     AccessSubjectListResponse,
     AccessSubjectQuery,
@@ -26,15 +26,20 @@ from extensions.ext_application_services import application_services
 from libs.url_utils import normalize_api_base_url
 from machinery.context import RequestContext
 from services.app_site_service import AppSiteAppNotFoundError, AppSiteChanges, AppSiteNotFoundError
-from services.entities.app_entities import AppRecord, UpdateAppParams
+from services.entities.app_entities import AccessSubject, AccessSubjectType, AppRecord, UpdateAppParams
 from services.webapp_access_query_service import WebAppAccessUnavailableError
 
-WEBAPP_ACCESS_UNAVAILABLE = "webapp_access_unavailable"
 
+class WebAppPath(StrEnum):
+    """The web app's URL segment per app mode, as the console builds the share link."""
 
-class AccessSubjectType(StrEnum):
-    ACCOUNT = "account"
-    GROUP = "group"
+    CHAT = "chat"
+    COMPLETION = "completion"
+    WORKFLOW = "workflow"
+    AGENT = "agent"
+
+    def url(self, base_url: str, code: str | None) -> str | None:
+        return f"{base_url}/{self}/{code}" if code else None
 
 
 def request_context(ctx: Context) -> RequestContext:
@@ -50,7 +55,7 @@ def _info_from_record[T: BaseModel](ctx: Context, record: AppRecord, model: type
     if "role" in model.model_fields:
         if role is None:
             agent = agent_binding(ctx.workspace.id, ctx.app.id)
-            role = agent.role if agent is not None else ""
+            role = agent.role if agent is not None else None
         data["role"] = role
     return model.model_validate(data)
 
@@ -81,28 +86,51 @@ def update_app_info[T: BaseModel](ctx: Context, patch: BaseModel, model: type[T]
     return _info_from_record(ctx, record, model, changes.get("role"))
 
 
-def service_api[T: BaseModel](ctx: Context, model: type[T]) -> T:
+def _access_ready(ctx: Context) -> bool:
+    return application_services().apps.console.access_ready(request_context(ctx), ctx.app.id)
+
+
+def _service_api[T: BaseModel](ctx: Context, model: type[T], enabled: bool) -> T:
     base_url = normalize_api_base_url(dify_config.SERVICE_API_URL or request.host_url.rstrip("/"))
-    data: dict[str, object] = {"enabled": ctx.app.enable_api, "base_url": base_url}
-    if "api_rpm" in model.model_fields:
-        data |= {"api_rpm": ctx.app.api_rpm or 0, "api_rph": ctx.app.api_rph or 0}
+    data: dict[str, object] = {"enabled": enabled, "base_url": base_url}
+    if "access_ready" in model.model_fields:
+        ready = _access_ready(ctx)
+        data |= {
+            "enabled": enabled and ready,
+            "access_ready": ready,
+            "api_rpm": ctx.app.api_rpm or 0,
+            "api_rph": ctx.app.api_rph or 0,
+        }
     return model.model_validate(data)
+
+
+def service_api[T: BaseModel](ctx: Context, model: type[T]) -> T:
+    return _service_api(ctx, model, ctx.app.enable_api)
 
 
 def update_service_api[T: BaseModel](ctx: Context, enabled: bool, model: type[T]) -> T:
     record = application_services().apps.console.set_api_enabled(request_context(ctx), ctx.app.id, enabled)
-    return model.model_validate({**service_api(ctx, model).model_dump(), "enabled": record.enable_api})
+    return _service_api(ctx, model, record.enable_api)
 
 
-def webapp[T: BaseModel](ctx: Context, model: type[T]) -> T:
+def webapp[T: BaseModel](ctx: Context, model: type[T], path: WebAppPath) -> T:
     app = application_services().apps.console.get(request_context(ctx), ctx.app.id)
     site = app.site or {}
-    return model.model_validate(
-        {**site, "enabled": app.enable_site, "access_token": site.get("code"), "app_base_url": app_base_url()}
-    )
+    base_url = app_base_url()
+    data = {
+        **site,
+        "enabled": app.enable_site,
+        "access_token": site.get("code"),
+        "app_base_url": base_url,
+        "url": path.url(base_url, site.get("code")),
+    }
+    if "access_ready" in model.model_fields:
+        ready = _access_ready(ctx)
+        data |= {"enabled": app.enable_site and ready, "access_ready": ready}
+    return model.model_validate(data)
 
 
-def update_webapp[T: BaseModel](ctx: Context, patch: BaseModel, model: type[T]) -> T:
+def update_webapp[T: BaseModel](ctx: Context, patch: BaseModel, model: type[T], path: WebAppPath) -> T:
     changes = patch.model_dump(exclude_unset=True, exclude_none=True)
     enabled = changes.pop("enabled", None)
     try:
@@ -112,27 +140,32 @@ def update_webapp[T: BaseModel](ctx: Context, patch: BaseModel, model: type[T]) 
         raise NotFound(str(error)) from error
     if enabled is not None:
         application_services().apps.console.set_site_enabled(request_context(ctx), ctx.app.id, enabled)
-    return webapp(ctx, model)
+    return webapp(ctx, model, path)
 
 
-def reset_webapp(ctx: Context) -> WebAppToken:
+def reset_webapp(ctx: Context, path: WebAppPath) -> WebAppToken:
     try:
         site = application_services().app_sites.reset_access_token(request_context(ctx), ctx.app.id)
     except (AppSiteNotFoundError, AppSiteAppNotFoundError) as error:
         raise NotFound(str(error)) from error
-    return WebAppToken(access_token=site.code, app_base_url=app_base_url())
+    base_url = app_base_url()
+    return WebAppToken(access_token=site.code, app_base_url=base_url, url=path.url(base_url, site.code))
+
+
+def _subject_rows(subjects: list[AccessSubject]) -> list[AccessSubjectRow]:
+    return [AccessSubjectRow.model_validate(subject, from_attributes=True) for subject in subjects]
 
 
 def webapp_access(ctx: Context) -> WebAppAccess:
     console = application_services().apps.console
     access_mode = console.get(request_context(ctx), ctx.app.id).access_mode
     if access_mode is None:
-        raise ServiceUnavailable(WEBAPP_ACCESS_UNAVAILABLE)
+        raise WebAppAccessUnavailable()
     try:
         subjects = console.access_subjects(ctx.app.id)
     except WebAppAccessUnavailableError as error:
-        raise ServiceUnavailable(WEBAPP_ACCESS_UNAVAILABLE) from error
-    return WebAppAccess(access_mode=access_mode, groups=subjects["groups"], members=subjects["members"])
+        raise WebAppAccessUnavailable() from error
+    return WebAppAccess(access_mode=access_mode, subjects=_subject_rows(subjects))
 
 
 def update_webapp_access(ctx: Context, body: WebAppAccessPayload) -> WebAppAccess:
@@ -140,37 +173,27 @@ def update_webapp_access(ctx: Context, body: WebAppAccessPayload) -> WebAppAcces
     well_formed = all(subject.get("id") and subject.get("type") in AccessSubjectType for subject in body.subjects)
     if private != bool(body.subjects) or not well_formed:
         raise AccessSubjectsInvalid()
+    console = application_services().apps.console
     try:
-        application_services().apps.console.update_access(
+        # read first: an Enterprise that can't list subjects fails here, before anything is written
+        console.access_subjects(ctx.app.id)
+        console.update_access(
             ctx.app.id,
             body.access_mode,
             [{"subjectId": subject["id"], "subjectType": subject["type"]} for subject in body.subjects],
         )
     except WebAppAccessUnavailableError as error:
-        raise ServiceUnavailable(WEBAPP_ACCESS_UNAVAILABLE) from error
+        raise WebAppAccessUnavailable() from error
     return webapp_access(ctx)
 
 
-def access_subjects(query: AccessSubjectQuery) -> AccessSubjectListResponse:
+def access_subjects(ctx: Context, query: AccessSubjectQuery) -> AccessSubjectListResponse:
     try:
         result = application_services().apps.console.search_access_subjects(
-            keyword=query.keyword, page=query.page, limit=query.limit, group_id=query.group_id
+            request_context(ctx), keyword=query.keyword, page=query.page, limit=query.limit, group_id=query.group_id
         )
     except WebAppAccessUnavailableError as error:
-        raise ServiceUnavailable(WEBAPP_ACCESS_UNAVAILABLE) from error
-    rows = []
-    for subject in result["subjects"]:
-        group = subject.get("groupData") or {}
-        account = subject.get("accountData") or {}
-        rows.append(
-            AccessSubjectRow(
-                id=subject["subjectId"],
-                type=subject["subjectType"],
-                name=group.get("name") or account.get("name") or "",
-                email=account.get("email"),
-                member_count=group.get("groupSize"),
-            )
-        )
+        raise WebAppAccessUnavailable() from error
     return AccessSubjectListResponse(
-        page=query.page, limit=query.limit, has_more=bool(result.get("hasMore")), data=rows
+        page=query.page, limit=query.limit, has_more=result.has_more, data=_subject_rows(result.subjects)
     )

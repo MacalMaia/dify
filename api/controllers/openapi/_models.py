@@ -719,7 +719,7 @@ class ChatAppInfo(AppSettingsInfo):
 
 
 class AgentAppInfo(ChatAppInfo):
-    role: str = ""
+    role: str | None = None
 
 
 class AppInfoPatch(BaseModel):
@@ -747,6 +747,7 @@ class ServiceApi(BaseModel):
 
 
 class AgentServiceApi(ServiceApi):
+    access_ready: bool
     api_rpm: int = 0
     api_rph: int = 0
 
@@ -774,6 +775,7 @@ class WebApp(BaseModel):
     enabled: bool
     access_token: str | None = None
     app_base_url: str
+    url: str | None = None
     title: str | None = None
     description: str | None = None
     icon_type: str | None = None
@@ -798,6 +800,10 @@ class ChatWebApp(WebApp):
 
 class AdvancedChatWebApp(ChatWebApp):
     show_workflow_steps: bool = False
+
+
+class AgentWebApp(ChatWebApp):
+    access_ready: bool
 
 
 class WebAppPatch(BaseModel):
@@ -838,12 +844,20 @@ class AdvancedChatWebAppPatch(ChatWebAppPatch):
 class WebAppToken(BaseModel):
     access_token: str | None = None
     app_base_url: str
+    url: str | None = None
+
+
+class AccessSubjectRow(BaseModel):
+    id: str
+    type: str
+    name: str | None = None
+    email: str | None = None
+    member_count: int | None = None
 
 
 class WebAppAccess(BaseModel):
     access_mode: str
-    groups: list[dict[str, Any]] = Field(default_factory=list)
-    members: list[dict[str, Any]] = Field(default_factory=list)
+    subjects: list[AccessSubjectRow]
 
 
 class WebAppAccessPayload(BaseModel):
@@ -862,14 +876,6 @@ class AccessSubjectQuery(BaseModel):
     group_id: str | None = Field(default=None, description="Search only inside this group")
     page: int = Field(default=1, ge=1)
     limit: int = Field(default=20, ge=1, le=100)
-
-
-class AccessSubjectRow(BaseModel):
-    id: str
-    type: str
-    name: str
-    email: str | None = None
-    member_count: int | None = None
 
 
 class AccessSubjectListResponse(BaseModel):

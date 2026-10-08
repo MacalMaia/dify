@@ -41,6 +41,8 @@ from services.app.console_service import (
     InvalidAppExportError,
 )
 from services.entities.app_entities import (
+    AccessSubject,
+    AccessSubjectPage,
     AppCreationSettings,
     AppDeletion,
     AppExportOptions,
@@ -152,7 +154,7 @@ class Access:
         del app_id
         return "private"
 
-    def access_subjects(self, app_id: str) -> dict[str, object]:
+    def access_subjects(self, app_id: str) -> list[AccessSubject]:
         del app_id
         pytest.fail("Unexpected access subjects lookup")
 
@@ -160,8 +162,10 @@ class Access:
         del app_id, access_mode, subjects
         pytest.fail("Unexpected access update")
 
-    def search_access_subjects(self, *, keyword: str, page: int, limit: int, group_id: str | None) -> dict[str, object]:
-        del keyword, page, limit, group_id
+    def search_access_subjects(
+        self, context: RequestContext, *, keyword: str, page: int, limit: int, group_id: str | None
+    ) -> AccessSubjectPage:
+        del context, keyword, page, limit, group_id
         pytest.fail("Unexpected access subject search")
 
     def can_export_version(self, workspace_id: str) -> bool:
@@ -446,6 +450,10 @@ class Lifecycle:
         assert context is CONTEXT
         assert settings.app == {"mode": params.mode}
         return RECORD
+
+    def create_draft(self, context: RequestContext, app_id: str) -> None:
+        del context, app_id
+        pytest.fail("Unexpected draft creation")
 
     def prepare_creation(self, context: RequestContext, params: CreateAppParams) -> AppCreationSettings:
         assert context is CONTEXT

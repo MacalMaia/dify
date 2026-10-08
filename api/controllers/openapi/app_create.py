@@ -1,4 +1,4 @@
-"""Create blank workflow and advanced-chat apps; export then gives the starting DSL."""
+"""Create blank workflow and advanced-chat apps with an empty draft; export then gives the starting DSL."""
 
 from __future__ import annotations
 
@@ -40,9 +40,9 @@ _CREATE_GUARDS: Final = (
 def _create(
     ctx: RequestContext, mode: Literal[AppMode.WORKFLOW, AppMode.ADVANCED_CHAT], body: CreateAppPayload
 ) -> tuple[CreatedAppResponse, HTTPStatus]:
-    app = application_services().apps.console.create(
-        ctx, CreateAppParams(mode=mode.value, **body.model_dump(exclude_none=True))
-    )
+    console = application_services().apps.console
+    app = console.create(ctx, CreateAppParams(mode=mode.value, **body.model_dump(exclude_none=True)))
+    console.create_draft(ctx, app.id)
     return CreatedAppResponse(app_id=app.id, mode=mode.value, name=app.name), HTTPStatus.CREATED
 
 

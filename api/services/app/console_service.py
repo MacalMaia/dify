@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from contextlib import AbstractContextManager, closing
 from dataclasses import replace
-from typing import Any, BinaryIO, Literal, Protocol
+from typing import BinaryIO, Literal, Protocol
 from uuid import UUID, uuid4
 
 from enums import WebAppAccessMode
@@ -13,6 +13,8 @@ from models.model import AppMode
 from services.agent.errors import InvalidRosterAgentPackageError
 from services.agent.roster_package_entities import RosterAgentPackageExport
 from services.entities.app_entities import (
+    AccessSubject,
+    AccessSubjectPage,
     AppChange,
     AppCreationSettings,
     AppDeletion,
@@ -87,13 +89,13 @@ class ConsoleAppAccess(Protocol):
 
     def access_mode(self, app_id: str) -> str | None: ...
 
-    def access_subjects(self, app_id: str) -> dict[str, Any]: ...
+    def access_subjects(self, app_id: str) -> list[AccessSubject]: ...
 
     def update_access(self, app_id: str, access_mode: WebAppAccessMode, subjects: list[dict[str, str]]) -> None: ...
 
     def search_access_subjects(
-        self, *, keyword: str, page: int, limit: int, group_id: str | None
-    ) -> dict[str, Any]: ...
+        self, context: RequestContext, *, keyword: str, page: int, limit: int, group_id: str | None
+    ) -> AccessSubjectPage: ...
 
     def can_export_version(self, workspace_id: str) -> bool: ...
 
@@ -116,6 +118,8 @@ class ConsoleApps(Protocol):
     def set_site_enabled(self, context: RequestContext, app_id: str, enabled: bool) -> AppChange: ...
 
     def set_api_enabled(self, context: RequestContext, app_id: str, enabled: bool) -> AppChange: ...
+
+    def access_ready(self, context: RequestContext, app_id: str) -> bool: ...
 
     def set_starred(self, context: RequestContext, app_id: str, starred: bool) -> None: ...
 
@@ -182,6 +186,8 @@ class AppTraceProvider(Protocol):
 class AppLifecycle(Protocol):
     def create(self, context: RequestContext, params: CreateAppParams, settings: AppCreationSettings) -> AppRecord: ...
 
+    def create_draft(self, context: RequestContext, app_id: str) -> None: ...
+
     def delete(self, context: RequestContext, app_id: str) -> AppDeletion: ...
 
     def prepare_creation(self, context: RequestContext, params: CreateAppParams) -> AppCreationSettings: ...
@@ -213,14 +219,20 @@ class ConsoleAppService:
         self._tracing = tracing
         self._lifecycle = lifecycle
 
-    def access_subjects(self, app_id: str) -> dict[str, Any]:
+    def access_subjects(self, app_id: str) -> list[AccessSubject]:
         return self._access.access_subjects(app_id)
 
     def update_access(self, app_id: str, access_mode: WebAppAccessMode, subjects: list[dict[str, str]]) -> None:
         self._access.update_access(app_id, access_mode, subjects)
 
-    def search_access_subjects(self, *, keyword: str, page: int, limit: int, group_id: str | None) -> dict[str, Any]:
-        return self._access.search_access_subjects(keyword=keyword, page=page, limit=limit, group_id=group_id)
+    def search_access_subjects(
+        self, context: RequestContext, *, keyword: str, page: int, limit: int, group_id: str | None
+    ) -> AccessSubjectPage:
+        return self._access.search_access_subjects(context, keyword=keyword, page=page, limit=limit, group_id=group_id)
+
+    def access_ready(self, context: RequestContext, app_id: str) -> bool:
+        """Whether an agent app has a published version its web app and Service API can serve."""
+        return self._apps.access_ready(context, app_id)
 
     def import_app(self, context: RequestContext, params: AppImportParams, *, source: BinaryIO | None = None) -> Import:
         if source is not None:
@@ -350,6 +362,10 @@ class ConsoleAppService:
         keys = self._access.created_permissions(context, app.id)
         self._access.initialize_created_app(context, app.id)
         return self._lifecycle.present(context, replace(app, permission_keys=keys))
+
+    def create_draft(self, context: RequestContext, app_id: str) -> None:
+        """Save the empty draft the console editor saves on first open, so the app exports as DSL."""
+        self._lifecycle.create_draft(context, app_id)
 
     def update(self, context: RequestContext, app_id: str, params: UpdateAppParams) -> AppRecord:
         app = self._apps.update(context, app_id, params)

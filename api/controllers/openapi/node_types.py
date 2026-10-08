@@ -27,7 +27,8 @@ class NodeTypeListApi(Resource):
     )
     def get(self, ctx: Context):
         rows = [
-            NodeTypeRow(type=str(node_type), version=LATEST_VERSION) for node_type in get_node_type_classes_mapping()
+            NodeTypeRow(type=str(node_type), version=versions[LATEST_VERSION].version())
+            for node_type, versions in get_node_type_classes_mapping().items()
         ]
         return NodeTypeListResponse(data=sorted(rows, key=lambda row: row.type))
 
@@ -48,7 +49,7 @@ class NodeTypeDetailApi(Resource):
             raise NodeTypeNotFound()
         return NodeTypeDetailResponse(
             type=node_type,
-            version=LATEST_VERSION,
+            version=node_class.version(),
             schema=node_class._get_node_data_type().model_json_schema(),
             default_config=dict(WorkflowService().get_default_block_config(node_type)),
         )

@@ -46,7 +46,7 @@ from controllers.openapi._models import (
 )
 from controllers.openapi.app_run import _DRAFT_RUN_GUARDS, require_mode
 from controllers.openapi.auth.context import Context
-from controllers.openapi.auth.requirements import account_app_guards
+from controllers.openapi.auth.requirements import CheckAppMode, account_app_guards
 from core.helper import encrypter
 from core.logging.context import get_request_id, get_trace_id
 from core.workflow.llm_environment_variable import environment_variable_value_type
@@ -444,12 +444,11 @@ class WorkflowDraftNodeRunApi(Resource):
                 input={"app_id": "<app_id>", "node_id": "<node_id>", "inputs": {"#llm.text#": "Hello"}},
             ),
         ),
-        requirements=_DRAFT_RUN_GUARDS,
+        requirements=(*_DRAFT_RUN_GUARDS, CheckAppMode(AppMode.WORKFLOW)),
         body=NodeRunPayload,
         returns=(HTTPStatus.OK, WorkflowRunNodeExecutionResponse, "Node execution"),
     )
     def post(self, ctx: Context, app_id: str, node_id: str, *, body: NodeRunPayload):
-        require_mode(ctx.app, AppMode.WORKFLOW)
         return run_draft_node(ctx, node_id, inputs=body.inputs, query="")
 
 
@@ -460,10 +459,9 @@ class AdvancedChatDraftNodeRunApi(Resource):
         kind=Kind.OBJECT,
         summary="Test one node of an advanced-chat draft, reusing what the last draft run saved",
         examples=(Example(title="Test a node", input={"app_id": "<app_id>", "node_id": "<node_id>", "query": "Hi"}),),
-        requirements=_DRAFT_RUN_GUARDS,
+        requirements=(*_DRAFT_RUN_GUARDS, CheckAppMode(AppMode.ADVANCED_CHAT)),
         body=AdvancedChatNodeRunPayload,
         returns=(HTTPStatus.OK, WorkflowRunNodeExecutionResponse, "Node execution"),
     )
     def post(self, ctx: Context, app_id: str, node_id: str, *, body: AdvancedChatNodeRunPayload):
-        require_mode(ctx.app, AppMode.ADVANCED_CHAT)
         return run_draft_node(ctx, node_id, inputs=body.inputs, query=body.query)

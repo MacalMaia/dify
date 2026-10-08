@@ -29,7 +29,7 @@ def test_describe_node_type_has_a_schema_without_default_config(app: Flask, monk
             NodeTypeDetailResponse,
             cast(_EndpointView, api.get).__handler__(api, cast(Context, SimpleNamespace()), "if-else"),
         )
-    assert response.type == "if-else"
+    assert (response.type, response.version) == ("if-else", "1")
     assert response.schema_["properties"]
     assert response.default_config == {}
 

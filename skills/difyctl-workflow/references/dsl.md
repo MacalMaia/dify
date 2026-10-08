@@ -1,6 +1,6 @@
 # Workflow DSL
 
-Shape of a blank export; values vary. Taken from a real console export (`api/tests/fixtures/workflow/simple_passthrough_workflow.yml`), trimmed to a Start node wired to an End node.
+Shape of an exported draft; values vary. The example below is taken from a real console export (`api/tests/fixtures/workflow/simple_passthrough_workflow.yml`), trimmed to a Start node wired to an End node.
 
 ## Where things go
 
@@ -12,7 +12,7 @@ Shape of a blank export; values vary. Taken from a real console export (`api/tes
 - Read another node's output as `{{#<node_id>.<var>#}}` in text fields. In `value_selector` write `[<node_id>, <var>]`.
 - Never put secret values in the DSL.
 
-## Example
+## Minimal valid workflow DSL
 
 ```yaml
 version: 0.3.1
